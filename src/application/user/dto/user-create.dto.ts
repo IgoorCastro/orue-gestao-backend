@@ -6,7 +6,7 @@ export interface CreateUserInputDTO {
 }
 
 export interface CreateUserOutputDTO {
-    id: string;
+    id?: string;
     name: string;
     role: UserRole;
     isActive: boolean;

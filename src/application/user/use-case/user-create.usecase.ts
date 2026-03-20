@@ -9,20 +9,18 @@ export class CreateUserUseCase {
         private uuid: UuidGenerator,
     ) { }
 
-    async execute(input: CreateUserInputDTO): Promise<CreateUserOutputDTO> {
-        const { name, role } = input;
-
+    async execute({ name, role }: CreateUserInputDTO): Promise<CreateUserOutputDTO> {
         const existingUser = await this.userRepository.findByName(name);
-        if (existingUser) throw new Error("User already exists");
+        if (existingUser.length > 0) throw new Error("User already exists");
 
         // novo usuario
-        const newUser = new User(
-            this.uuid.generate(),
-            name,
-            role,
-            true,
-            new Date(),
-        );
+        const newUser = new User({
+            id: this.uuid.generate(),
+            role: role,
+            isActive: true,
+            createdAt: new Date(),
+            name: name,
+        });
 
         // inserindo no banco
         await this.userRepository.create(newUser);

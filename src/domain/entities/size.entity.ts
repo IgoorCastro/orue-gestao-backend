@@ -1,16 +1,21 @@
 // entidade de tamanho
 import { ItemSize } from "../enums/product-size.enum";
 
+type SizeProps = Readonly<{
+    id: string,
+    size: ItemSize,
+}>
+
 export class Size {
     private readonly _id: string;
     private _size: ItemSize;
 
-    constructor(id: string, size: ItemSize) {
-        if(!id) throw new Error("Id cannot be empty");
-        this.validateSize(size);
+    constructor(props: SizeProps) {
+        if(!props.id || props.id.trim().length === 0) throw new Error("Id cannot be empty");
+        this.validateSize(props.size);
 
-        this._id = id;
-        this._size = size;
+        this._id = props.id;
+        this._size = props.size;
     }
 
     get size(): ItemSize {

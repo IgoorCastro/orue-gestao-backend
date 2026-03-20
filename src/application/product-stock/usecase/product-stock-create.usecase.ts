@@ -1,5 +1,5 @@
 import { ProductStockRepository } from "@/src/domain/repositories/product-stock.repository";
-import { CreateProductStockInputDto, CreateProductStockOutuputDto } from "../dto/productStock-create.dto";
+import { CreateProductStockInputDto, CreateProductStockOutuputDto } from "../dto/product-stock-create.dto";
 import { ProductStock } from "@/src/domain/entities/product-stock.entity";
 import { UuidGenerator } from "@/src/domain/services/uuid-generator.services";
 

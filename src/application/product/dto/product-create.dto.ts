@@ -6,7 +6,6 @@ export interface CreateProductInputDto {
     materialId: string,
     modelId: string,
     mlProductId?: string,
-    barcode?: string,
 }
 
 export interface CreateProductOutputDto {

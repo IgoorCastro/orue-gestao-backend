@@ -15,11 +15,10 @@ export class CreateColorUseCase {
         const existingColor = await this.colorRepository.findByName(name);
         if(existingColor) throw new Error("Color is already exists");
 
-        const color = new Color({
+        const color = Color.create({
             id: this.uuid.generate(),
             name,
-        }
-        );
+        });
 
         await this.colorRepository.create(color);
 

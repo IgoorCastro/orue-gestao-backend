@@ -8,8 +8,7 @@ export class FindUserByIdUseCase {
     ) { }
 
     async execute(id: string) {
-        if(!id) throw new Error("Invalid id");
-        this.uuid.validate(id);
+        if(!id) throw new Error("Id cannot be empty");
         
         const findedUser = await this.userRepository.findById(id);
         if(!findedUser) throw new Error("User not found");

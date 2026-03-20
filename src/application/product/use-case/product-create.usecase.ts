@@ -8,6 +8,7 @@ import { SizeRepository } from "@/src/domain/repositories/size.repository";
 import { MaterialRepository } from "@/src/domain/repositories/material.repository";
 import { ModelRepository } from "@/src/domain/repositories/model.repository";
 import { SkuGeneratorService } from "@/src/domain/services/sku-generator.services";
+import { BarcodeGeneratorSerive } from "@/src/domain/services/barcode-generator.services";
 
 export class CreateProductUseCase {
     constructor(
@@ -18,10 +19,11 @@ export class CreateProductUseCase {
         private modelRepository: ModelRepository,
         private uuid: UuidGenerator,
         private sku: SkuGeneratorService,
+        private barcode: BarcodeGeneratorSerive,
     ) { }
 
     async execute(input: CreateProductInputDto): Promise<CreateProductOutputDto> {
-        const { name, price, colorId, sizeId, materialId, modelId, mlProductId, barcode } = input;
+        const { name, price, colorId, sizeId, materialId, modelId, mlProductId } = input;
         
         const existingProduct = await this.productRepository.findByName(name);
         if(existingProduct) throw new Error("Product already exists");
@@ -32,6 +34,14 @@ export class CreateProductUseCase {
         const model = await this.modelRepository.findById(modelId);
         if (!model || !material || !color || !size) throw new Error("Invalid product attributes");
 
+        // gerar e testar barcode 
+        let bc = ""; // barcode
+        let exists = true;
+        while(exists) {
+            bc = this.barcode.generete();
+            exists = await this.productRepository.existsByBarcode(bc); // true para positivo
+        }
+
         const product = new Product({
             id: this.uuid.generate(),
             sku: this.sku.generate({
@@ -41,6 +51,7 @@ export class CreateProductUseCase {
                 size: size.size,
                 color: color.name,
             }),
+            barcode: bc,
             name,
             price,
             colorId,
@@ -48,7 +59,6 @@ export class CreateProductUseCase {
             materialId,
             modelId,
             mlProductId,
-            barcode,
         });
 
         await this.productRepository.create(product);

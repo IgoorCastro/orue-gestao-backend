@@ -6,8 +6,8 @@ export class UpdateUserUseCaseUseCase {
         private userRepository: UserRepository,
     ) {}
 
-    async execute(input: SaveUserDto) {
-        const { id, isActive, name, role } = input;
+    async execute(props: SaveUserDto) {
+        const { id, isActive, name, role } = props;
 
         const existingUser = await this.userRepository.findById(id);
         if(!existingUser) throw new Error("User not found");

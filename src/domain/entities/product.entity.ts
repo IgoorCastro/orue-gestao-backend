@@ -2,56 +2,93 @@
 // barcode podera sera adicionado
 // em um segundo momento
 
-import { DefaultSkuGenerator } from "../services/default-sku-generator";
+import { ProductType } from "../enums/product-type.enum";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 
-type ProductProps = {
-    id: string, sku: string, name: string,
-    price: number, colorId: string, sizeId: string,
-    materialId: string, modelId: string, mlProductId?: string,
-    barcode?: string
-}
+type ProductProps = Readonly<{
+    id: string,
+    sku: string,
+    name: string,
+    price: number,
+    sizeId: string,
+    modelId: string,
+    mlProductId?: string,
+    barcode?: string,
+    type: ProductType,
+    createdAt: Date,
+    updatedAt: Date,
+    deletedAt?: Date,
+}>
 
 export class Product {
-    public readonly _id: string;
+    private readonly _id: string;
     private _sku: string;
     private _name: string;
+    private _type: ProductType;
     private _price: number;
-    private _colorId: string;
     private _sizeId: string;
-    private _materialId: string;
     private _modelId: string;
     private _mlProductId?: string; // vínculo futuro com ML
     private _barcode?: string;
-    private SkuGenerator = new DefaultSkuGenerator();
+    private _createdAt: Date;
+    private _updatedAt: Date;
+    private _deletedAt?: Date;
 
-    constructor( props: ProductProps ) {
-        if(!props.id) throw new Error("Id cannot be empty")
-        this.validateSku(props.sku);
-        this.validateColor(props.colorId);
+    private constructor(props: ProductProps) {
+        if (!props.id || props.id.trim().length === 0) throw new Error("Id cannot be empty");
         this.validateSize(props.sizeId);
-        this.validateMaterial(props.materialId);
         this.validateModel(props.modelId);
         this.validateName(props.name);
         this.validatePrice(props.price);
         this.validateSku(props.sku);
+        this.validateType(props.type);
+        if(props.barcode !== undefined) this.validateBarCode(props.barcode);
 
         this._id = props.id;
-        this._sku = this.SkuGenerator.generate({
-            name: props.name,
-            model: props.modelId,
-            material: props.materialId,
-            size: props.sizeId,
-            color: props.colorId,
-        });
         this._name = capitalizeFirstLetter(props.name);
         this._price = props.price;
-        this._colorId = props.colorId;
+        this._type = props.type;
+        this._sku = props.sku;
+        this._barcode = props.barcode;
         this._sizeId = props.sizeId;
-        this._materialId = props.materialId;
         this._modelId = props.modelId;
         this._mlProductId = props.mlProductId;
-        this._barcode = props.barcode;
+        this._createdAt = props.createdAt;
+        this._updatedAt = props.updatedAt;
+        this._deletedAt = props.deletedAt;
+    }
+
+    static create(props: {
+        id: string,
+        name: string,
+        price: number,
+        type: ProductType,
+        sku: string,
+        barcode?: string,
+        sizeId: string,
+        modelId: string,
+        mlProductId?: string,
+    }): Product {
+        const now = new Date();
+
+        return new Product({
+            id: props.id,
+            name: props.name,
+            price: props.price,
+            type: props.type,
+            sku: props.sku,
+            barcode: props.barcode,
+            sizeId: props.sizeId,
+            modelId: props.modelId,
+            mlProductId: props.mlProductId,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: undefined,
+        });
+    }
+
+    static restore(props: ProductProps): Product {
+        return new Product(props);
     }
 
     get id(): string {
@@ -63,21 +100,11 @@ export class Product {
     }
 
     changeSku(sku: string): void {
+        if (sku === this._sku) return;
         this.validateSku(sku);
-        this._sku = sku;
-        // this.validateName(this._name);
-        // this.validateModel(this._modelId);
-        // this.validateMaterial(this._materialId);
-        // this.validateSize(this._sizeId);
-        // this.validateColor(this._colorId);
 
-        // this._sku = this.SkuGenerator.generate({
-        //     name: this._name,
-        //     model: this._modelId,
-        //     material: this._materialId,
-        //     size: this._sizeId,
-        //     color: this._colorId,
-        // })
+        this._sku = sku;
+        this.touch();
     }
 
     get name(): string {
@@ -85,8 +112,11 @@ export class Product {
     }
 
     rename(name: string): void {
+        if (name === this._name) return;
         this.validateName(name);
-        this._name = name;
+
+        this._name = capitalizeFirstLetter(name);
+        this.touch();
     }
 
     get price(): number {
@@ -94,17 +124,24 @@ export class Product {
     }
 
     changePrice(price: number): void {
+        if (price === this.price) return;
         this.validatePrice(price);
+
         this._price = price;
+        this.touch();
     }
 
-    get colorId(): string {
-        return this._colorId;
+    get type(): ProductType {
+        return this._type;
     }
 
-    changeColor(colorId: string): void {
-        this.validateColor(colorId);
-        this._colorId = colorId;
+
+    changeType(type: ProductType): void {
+        if (type === this.type) return;
+        this.validateType(type);
+
+        this._type = type;
+        this.touch();
     }
 
     get sizeId(): string {
@@ -112,17 +149,11 @@ export class Product {
     }
 
     changeSize(sizeId: string): void {
+        if (sizeId === this.sizeId) return;
         this.validateSize(sizeId);
+
         this._sizeId = sizeId;
-    }
-
-    get materialId(): string {
-        return this._materialId;
-    }
-
-    changeMaterial(materialId: string): void {
-        this.validateMaterial(materialId);
-        this._materialId = materialId;
+        this.touch();
     }
 
     get modelId(): string {
@@ -130,8 +161,11 @@ export class Product {
     }
 
     changeModel(modelId: string): void {
+        if (modelId === this.modelId) return;
         this.validateModel(modelId);
+
         this._modelId = modelId;
+        this.touch();
     }
 
     get mlProductId(): string | undefined {
@@ -139,41 +173,54 @@ export class Product {
     }
 
     changeMlProductId(mlProductId: string) {
+        if (mlProductId === this.mlProductId) return;
         this.validateMlProductId(mlProductId);
+
         this._mlProductId = mlProductId;
+        this.touch();
     }
 
     get barcode(): string | undefined {
         return this._barcode;
     }
 
-    changeBarcode(barcode: string): void {
-        this.validateBarCode(barcode);
+    changeBarcode(barcode?: string): void {
+        if (barcode === this._barcode) return;
+
+        // adicionar um novo barcode
+        if (barcode !== undefined) this.validateBarCode(barcode);
+
+        // remove o barcode atual 'barcode undefined'
         this._barcode = barcode;
+        this.touch();
+    }
+
+    get createdAt(): Date {
+        return this._createdAt;
+    }
+
+    get updatedAt(): Date {
+        return this._updatedAt;
+    }
+
+    get deletedAt(): Date | undefined {
+        return this._deletedAt;
     }
 
     private validatePrice(price: number): void {
-        if (price < 0 || !Number.isFinite(price)) throw new Error("Price cannot be negative");
+        if (price < 0 || !Number.isFinite(price)) throw new Error("Invalid price");
     }
 
     private validateName(name: string): void {
-        if (!name|| name.trim().length === 0) throw new Error("Name cannot be empty");
+        if (!name || name.trim().length === 0) throw new Error("Name cannot be empty");
     }
 
     private validateSku(sku: string): void {
         if (!sku || sku.trim().length === 0) throw new Error("Sku cannot be empty");
     }
 
-    private validateColor(colorId: string): void {
-        if (!colorId || colorId.trim().length === 0) throw new Error("Color cannot be empty");
-    }
-
     private validateSize(size: string): void {
-        if (!size || size.trim().length === 0) throw new Error("Color cannot be empty");
-    }
-
-    private validateMaterial(material: string): void {
-        if (!material || material.trim().length === 0) throw new Error("Material cannot be empty");
+        if (!size || size.trim().length === 0) throw new Error("Size cannot be empty");
     }
 
     private validateModel(model: string): void {
@@ -186,5 +233,13 @@ export class Product {
 
     private validateBarCode(barcode: string): void {
         if (!barcode || barcode.trim().length === 0) throw new Error("Barcode cannot be empty");
+    }
+
+    private validateType(type: ProductType): void {
+        if (!Object.values(ProductType).includes(type)) throw new Error("Product type is invalid");
+    }
+
+    private touch(): void {
+        this._updatedAt = new Date();
     }
 }

@@ -1,40 +1,62 @@
 // entidade do usuario
 import { UserRole } from "../enums/user-role.enum";
+import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 
-type UserProps = {
-    id: string, 
+// readonly para garantir a imutabilidade da entrada
+// props chegam, são validadas e não mudam!
+type UserProps = Readonly<{
+    id: string,
     name: string,
-    role: UserRole, 
-    isActive: boolean, 
+    role: UserRole,
+    isActive: boolean,
     createdAt: Date,
-} 
+    updatedAt: Date,
+    deletedAt?: Date,
+}>
 
 export class User {
     private readonly _id: string;
-    private readonly _createdAt: Date;
     private _name: string;
     private _role: UserRole;
     private _isActive: boolean;
+    private _createdAt: Date;
+    private _updatedAt: Date;
+    private _deletedAt?: Date;
 
-    constructor(input: UserProps) {       
-        if(!input.id) throw new Error("Id cannot be empty");
-        if(!input.createdAt) throw new Error("Id cannot be empty");
-        this.validateRole(input.role);
-        this.validateName(input.name);
+    private constructor(props: UserProps) {
+        if (!props.id || props.id.trim().length === 0) throw new Error("Id cannot be empty");
+        this.validateRole(props.role);
+        this.validateName(props.name);
 
-        this._id = input.id;
-        this._name = input.name;
-        this._role = input.role;
-        this._isActive = input.isActive;
-        this._createdAt = input.createdAt;
+        this._id = props.id;
+        this._name = capitalizeFirstLetter(props.name);
+        this._role = props.role;
+        this._isActive = props.isActive;
+        this._createdAt = props.createdAt;
+        this._updatedAt = props.updatedAt;
+        this._deletedAt = props.deletedAt;
+    }
+
+    static create(props: { id: string, name: string, role: UserRole }): User {
+        const now = new Date();
+
+        return new User({
+            id: props.id,
+            name: props.name,
+            role: props.role,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: undefined,
+        });
+    }
+
+    static restore(props: UserProps): User {
+        return new User(props);
     }
 
     get id(): string {
         return this._id;
-    }
-
-    get createdAt(): Date {
-        return this._createdAt;
     }
 
     get name(): string {
@@ -42,8 +64,11 @@ export class User {
     }
 
     rename(name: string): void {
-        this.validateName(name);        
-        this._name = name;
+        if (name === this._name) return;
+        this.validateName(name);
+
+        this._name = capitalizeFirstLetter(name);
+        this.touch();
     }
 
     get role(): UserRole {
@@ -51,8 +76,12 @@ export class User {
     }
 
     changeRole(role: UserRole): void {
+        if(this._role === UserRole.ADMIN) throw new Error("Admin role cannot be changed");
+        if (role === this._role) return;
         this.validateRole(role);
+
         this._role = role;
+        this.touch();
     }
 
     get isActive(): boolean {
@@ -60,38 +89,47 @@ export class User {
     }
 
     activate(): void {
-        if(this._isActive) return;
+        if (this._isActive) return;
+
         this._isActive = true;
+        this.touch();
     }
 
     deactivate(): void {
-        if(this._role === UserRole.ADMIN) throw new Error("Admin cannot be deactivated")
-        if(!this._isActive) return;
+        if (!this._isActive) return;
+
         this._isActive = false;
+        this.touch();
     }
 
-    isUserAdmin(): boolean {
-        return this.role === UserRole.ADMIN;
+    // uso: user.hasRole(UserRole.ADMIN)
+    hasRole(role: UserRole): boolean {
+        return this._role === role;
     }
 
-    isUserManager(): boolean {
-        return this.role === UserRole.MANAGER;
+    get createdAt(): Date {
+        // garantindo a imutabilidade
+        return new Date(this._createdAt);
     }
 
-    isUserOperator(): boolean {
-        return this.role === UserRole.OPERATOR;
+    get updatedAt(): Date {
+        return new Date(this._updatedAt);
     }
 
-    isUserActive(): boolean {
-        return this._isActive;
+    get deletedAt(): Date | undefined {
+        return this._deletedAt ? new Date(this._deletedAt) : undefined;
     }
 
     private validateName(name: string): void {
-        if(name.length < 3) throw new Error("Invalid name - Name must be longer than 3 characters");
-        if(!name || name.trim().length === 0) throw new Error("Name cannot be empty");
+        if (!name || name.trim().length === 0) throw new Error("Name cannot be empty");
+        if (name.trim().length < 3) throw new Error("Name must be at least 3 characters");
     }
 
     private validateRole(role: UserRole): void {
-        if(!role || !Object.values(UserRole).includes(role)) throw new Error("Role is invalid");
+        if (!Object.values(UserRole).includes(role)) throw new Error("Role is invalid");
+    }
+
+    private touch(): void {
+        this._updatedAt = new Date();
     }
 };

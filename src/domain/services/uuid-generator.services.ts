@@ -1,4 +1,4 @@
 export interface UuidGenerator {
     generate(): string;
-    validate(uuid: string): void;
+    // validate(uuid: string): void;
 }
