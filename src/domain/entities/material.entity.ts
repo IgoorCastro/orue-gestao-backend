@@ -1,3 +1,4 @@
+import { ValidationError } from "../errors/validation.error";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
 
@@ -18,7 +19,7 @@ export class Material {
     private _deletedAt?: Date;
 
     private constructor({ id, name, createdAt, updatedAt, deletedAt }: MaterialProps) {
-        if (!id?.trim()) throw new Error("Id cannot be empty");
+        if (!id?.trim()) throw new ValidationError("Id cannot be empty");
         // manter o validate para testar o restore!
         Material.validateName(name);
 
@@ -56,6 +57,7 @@ export class Material {
     }
 
     rename(name: string): void {
+        this.ensureNotDeleted();
         const formattedName = Material.formatName(name);
         if (this._name === formattedName) return;
 
@@ -76,7 +78,8 @@ export class Material {
     }
 
     delete(): void {
-        if (this._deletedAt) throw new Error("Material already deleted");
+        this.ensureNotDeleted();
+        if (this._deletedAt) throw new ValidationError("Material already deleted");
 
         this._deletedAt = new Date();
         this.touch();
@@ -89,15 +92,23 @@ export class Material {
         this.touch();
     }
 
+    isActive(): boolean {
+        return !this._deletedAt;
+    }
+
     private static validateName(name: string): void {
-        if (!name?.trim()) throw new Error("Material name cannot be empty");
+        if (!name?.trim()) throw new ValidationError("Material name cannot be empty");
     }
 
     private static formatName(name: string): string {
         const normalized = normalizeName(name);
         Material.validateName(normalized);
 
-        return capitalizeFirstLetter(normalized);
+        return normalized;
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Material is deleted");
     }
 
     private touch(): void {

@@ -1,5 +1,8 @@
 // entidade do estoque
 import { StockType } from "../enums/stock-type.enum";
+import { ValidationError } from "../errors/validation.error";
+import capitalizeFirstLetter from "../utils/capitalize-first-letter";
+import normalizeName from "../utils/normalize-name";
 
 type StockProps = Readonly<{
     id: string,
@@ -21,8 +24,8 @@ export class Stock {
     private _deletedAt?: Date;
 
     private constructor(input: StockProps) {
-        if (!input.id?.trim()) throw new Error("Id cannot be empty");
-        this.validateName(input.name);
+        if (!input.id?.trim()) throw new ValidationError("Id cannot be empty");
+        Stock.validateName(input.name);
         this.validateType(input.type, input.storeId);
         if (input.storeId) this.validateStoreId(input.storeId);
 
@@ -41,7 +44,7 @@ export class Stock {
 
         return new Stock({
             id: props.id,
-            name: props.name,
+            name: Stock.formatName(props.name),
             storeId: props.storeId,
             type: props.type,
             createdAt: now,
@@ -63,16 +66,25 @@ export class Stock {
         return this._storeId;
     }
 
+    changeStoreId(storeId: string): void {
+        if (this._storeId === storeId) return;
+        this.validateStoreId(storeId);
+
+        this._storeId = storeId;
+        this.touch();
+    }
+
     get name(): string {
         return this._name;
     }
 
     // altera o nome do estoque
     rename(name: string): void {
-        if (name === this._name) return;
-        this.validateName(name);
+        this.ensureNotDeleted();
+        const formattedName = Stock.formatName(name);
+        if (formattedName === this._name) return;
 
-        this._name = name;
+        this._name = formattedName;
         this.touch();
     }
 
@@ -85,7 +97,15 @@ export class Stock {
         return this._type;
     }
 
-    // altera o tipo do estoque para MAIN
+    changeType(type: StockType): void {
+        if (this._type === type) return;
+        this.validateType(type);
+
+        this._type = type;
+        this.touch();
+    }
+
+    // altera o tipo do estoque para STORE
     setAsStoreStock(storeId: string): void {
         if (this._type === StockType.STORE && this._storeId === storeId) return;
         this.validateStoreId(storeId);
@@ -118,7 +138,7 @@ export class Stock {
 
     // soft delete do estoque
     delete(): void {
-        if (this._deletedAt) throw new Error("Stock already deleted");
+        this.ensureNotDeleted();
 
         this._deletedAt = new Date();
         this.touch();
@@ -135,22 +155,34 @@ export class Stock {
     isActive(): boolean {
         return !this._deletedAt;
     }
+    
 
-    private validateName(name: string): void {
-        if (!name?.trim()) throw new Error("Name cannot be empty");
+    private static validateName(name: string): void {
+        if (!name?.trim()) throw new ValidationError("Name cannot be empty");
     }
 
     private validateStoreId(storeId: string): void {
-        if (!storeId?.trim()) throw new Error("Store Id cannot be empty");
+        if (!storeId?.trim()) throw new ValidationError("Store Id cannot be empty");
     }
 
     private validateType(type: StockType, storeId?: string): void {
         // apenas 2 tipos de estoques
-        if (!Object.values(StockType).includes(type)) throw new Error("Stock type is invalid");
+        if (!Object.values(StockType).includes(type)) throw new ValidationError("Stock type is invalid");
         // stoque de loja precisa ter a referencia da mesma
-        if (type === StockType.STORE && !storeId) throw new Error("Store stock must have storeId")
+        if (type === StockType.STORE && !storeId) throw new ValidationError("Store stock must have storeId")
     }
 
+    private static formatName(name: string): string {
+        const normalized = normalizeName(name);
+        Stock.validateName(normalized);
+
+        return normalized;
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Stock is deleted");
+    }
+    
     private touch(): void {
         this._updatedAt = new Date();
     }

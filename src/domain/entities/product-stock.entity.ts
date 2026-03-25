@@ -1,5 +1,7 @@
 // Entidade do item presente em um estoque
 
+import { ValidationError } from "../errors/validation.error";
+
 type ProductStockProps = Readonly<{
     id: string,
     stockId: string,
@@ -20,7 +22,7 @@ export class ProductStock {
     private _deletedAt?: Date;
 
     private constructor(props: ProductStockProps) {
-        if (!props.id?.trim()) throw new Error("Id cannot be empty");
+        if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         this.validateProductId(props.productId);
         this.validateStockId(props.stockId);
         this.validateQuantity(props.quantity);
@@ -63,6 +65,7 @@ export class ProductStock {
 
     // talvez nunca seja usado
     changeStockId(id: string): void {
+        this.ensureNotDeleted();
         // verifica se a prop é igual ao id atual
         if (id === this._stockId) return;
         this.validateStockId(id);
@@ -77,6 +80,7 @@ export class ProductStock {
 
     // talvez nunca seja usado
     changeProductId(id: string): void {
+        this.ensureNotDeleted();
         // verifica se a prop é igual ao id atual
         if (id === this._productId) return;
         this.validateProductId(id);
@@ -89,7 +93,16 @@ export class ProductStock {
         return this._quantity;
     };
 
+    changeQuantity(quantity: number): void {
+        this.ensureNotDeleted();
+        this.validateQuantity(quantity);
+
+        this._quantity = quantity;
+        this.touch();
+    }
+
     increase(amount: number): void {
+        this.ensureNotDeleted();
         this.validateAmount(amount);
 
         this._quantity += amount;
@@ -97,8 +110,9 @@ export class ProductStock {
     }
 
     decrease(amount: number): void {
+        this.ensureNotDeleted();
         this.validateAmount(amount);
-        if(amount > this._quantity) throw new Error("Insufficient stock");
+        if(amount > this._quantity) throw new ValidationError("Insufficient stock");
 
         this._quantity -= amount;
         this.touch();
@@ -116,22 +130,44 @@ export class ProductStock {
         return this._deletedAt;
     }
 
+    delete(): void {
+        this.ensureNotDeleted();
+
+        this._deletedAt = new Date();
+        this.touch();
+    }
+
+    restoreDeleted(): void {
+        if (!this._deletedAt) return;
+
+        this._deletedAt = undefined;
+        this.touch();
+    }
+
+    isActive(): boolean {
+        return !this._deletedAt;
+    }
+
     // testa apenas a quantidade 
     private validateQuantity(quantity: number): void {
-        if (!Number.isSafeInteger(quantity) || quantity < 0) throw new Error("Invalid quantity");
+        if (!Number.isSafeInteger(quantity) || quantity < 0) throw new ValidationError("Invalid quantity");
     }
 
     private validateProductId(productId: string): void {
-        if (!productId?.trim()) throw new Error("Product id cannot be empty");
+        if (!productId?.trim()) throw new ValidationError("Product id cannot be empty");
     }
 
     private validateStockId(stockId: string): void {
-        if (!stockId?.trim()) throw new Error("Stock id cannot be empty");
+        if (!stockId?.trim()) throw new ValidationError("Stock id cannot be empty");
     }
 
     private validateAmount(amount: number): void {
-        if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Amount must be greater than zero");
+        if (!Number.isSafeInteger(amount) || amount <= 0) throw new ValidationError("Amount must be greater than zero");
     }
+
+    private ensureNotDeleted(): void {
+            if (!this.isActive) throw new ValidationError("Product stock is deleted");
+        }
 
     private touch(): void {
         this._updatedAt = new Date();

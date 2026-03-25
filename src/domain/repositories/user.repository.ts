@@ -8,5 +8,6 @@ export interface UserRepository {
     findByName(name: string): Promise<User[]>;
     findByRole(role: UserRole): Promise<User[]>
     findAll(): Promise<User[]>;
+    existsByName(name: string): Promise<boolean>;
     save(user: User): Promise<void>;
 }

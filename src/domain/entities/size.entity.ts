@@ -1,5 +1,6 @@
 // entidade de tamanho
 import { ProductSize } from "../enums/product-size.enum";
+import { ValidationError } from "../errors/validation.error";
 
 type SizeProps = Readonly<{
     id: string,
@@ -11,7 +12,7 @@ export class Size {
     private _size: ProductSize;
 
     constructor(props: SizeProps) {
-        if(!props.id?.trim()) throw new Error("Id cannot be empty");
+        if(!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         this.validateSize(props.size);
 
         this._id = props.id;
@@ -29,6 +30,6 @@ export class Size {
     }
 
     private validateSize(size: ProductSize) {
-        if (!size || !Object.values(ProductSize).includes(size)) throw new Error("Size is invalid");
+        if (!size || !Object.values(ProductSize).includes(size)) throw new ValidationError("Size is invalid");
     }
 }

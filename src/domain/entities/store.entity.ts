@@ -1,3 +1,4 @@
+import { ValidationError } from "../errors/validation.error";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
 
@@ -18,7 +19,7 @@ export class Store {
     private _deletedAt?: Date;
 
     private constructor(props: StoreProps) {
-        if(!props.id?.trim()) throw new Error("Id is required");
+        if(!props.id?.trim()) throw new ValidationError("Id is required");
 
         this._id = props.id;
         this._name = props.name;
@@ -51,9 +52,11 @@ export class Store {
     }
 
     rename(name: string): void {
-        if(name === this._name) return;
+        const formattedName = Store.formatName(name);
+        this.ensureNotDeleted();
+        if(formattedName === this._name) return;
 
-        this._name = Store.formatName(name);
+        this._name = formattedName;
         this.touch();
     }
 
@@ -73,7 +76,7 @@ export class Store {
 
     // soft delete do estoque
     delete(): void {
-        if (this._deletedAt) throw new Error("Store already deleted");
+        this.ensureNotDeleted();
 
         this._deletedAt = new Date();
         this.touch();
@@ -92,14 +95,18 @@ export class Store {
     }
 
     private static validateName(name: string) {
-        if (!name?.trim()) throw new Error("Name cannot be empty")
+        if (!name?.trim()) throw new ValidationError("Name cannot be empty")
     }
 
     private static formatName(name: string): string {
         const normalized = normalizeName(name);
         Store.validateName(normalized);
 
-        return capitalizeFirstLetter(normalized);
+        return normalized;
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Product is deleted");
     }
 
     private touch(): void {

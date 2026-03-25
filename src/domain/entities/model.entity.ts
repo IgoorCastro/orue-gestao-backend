@@ -1,3 +1,4 @@
+import { ValidationError } from "../errors/validation.error";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
 
@@ -18,7 +19,7 @@ export class Model {
     private _deletedAt?: Date;
 
     private constructor(props: ModelProps) {
-        if (!props.id?.trim()) throw new Error("Id cannot be empty");
+        if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         // manter o validate para testar o restore!
         Model.validateName(props.name);
 
@@ -54,6 +55,7 @@ export class Model {
     }
 
     rename(name: string): void {
+        this.ensureNotDeleted();
         const formattedName = Model.formatName(name);
         if (this._name === formattedName) return;
 
@@ -74,7 +76,7 @@ export class Model {
     }
 
     delete(): void {
-        if (this._deletedAt) throw new Error("Model already deleted");
+        this.ensureNotDeleted();
 
         this._deletedAt = new Date();
         this.touch();
@@ -87,17 +89,25 @@ export class Model {
         this.touch();
     }
 
-    private touch(): void {
-        this._updatedAt = new Date();
+    isActive(): boolean {
+        return !this._deletedAt;
     }
 
     private static validateName(name: string) {
-        if (!name?.trim()) throw new Error("Model cannot be empty");
+        if (!name?.trim()) throw new ValidationError("Model cannot be empty");
     }
 
     private static formatName(name: string): string {
         const normalized = normalizeName(name);
         Model.validateName(normalized);
-        return capitalizeFirstLetter(normalized);
+        return normalized;
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Model is deleted");
+    }
+
+    private touch(): void {
+        this._updatedAt = new Date();
     }
 }

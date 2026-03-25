@@ -1,5 +1,6 @@
 // entidade do usuario
 import { UserRole } from "../enums/user-role.enum";
+import { ValidationError } from "../errors/validation.error";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
 
@@ -23,8 +24,10 @@ export class User {
     private _deletedAt?: Date;
 
     private constructor(props: UserProps) {
-        if (!props.id?.trim()) throw new Error("Id cannot be empty");
+        if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         this.validateRole(props.role);
+        User.validateName(props.name);
+        
 
         this._id = props.id;
         this._name = props.name;
@@ -62,11 +65,11 @@ export class User {
     }
 
     rename(name: string): void {
-        if (name === this._name) return;
-        // desativado nao troca o nome
-        if(!this.isActive()) throw new Error("User is deleted");
+        this.ensureNotDeleted();
+        const formattedName = User.formatName(name);
+        if (formattedName === this._name) return;
 
-        this._name = User.formatName(name);
+        this._name = formattedName;
         this.touch();
     }
 
@@ -75,7 +78,8 @@ export class User {
     }
 
     changeRole(role: UserRole): void {
-        if (this._role === UserRole.ADMIN) throw new Error("Admin role cannot be changed");
+        this.ensureNotDeleted();
+        if (this._role === UserRole.ADMIN) throw new ValidationError("Admin role cannot be changed");
         if (role === this._role) return;
         this.validateRole(role);
 
@@ -103,7 +107,7 @@ export class User {
 
     // soft delete do estoque
     delete(): void {
-        if (this._deletedAt) throw new Error("User already deleted");
+        this.ensureNotDeleted();
 
         this._deletedAt = new Date();
         this.touch();
@@ -123,19 +127,23 @@ export class User {
     }
 
     private static validateName(name: string): void {
-        if (!name?.trim()) throw new Error("Name cannot be empty");
-        if (name.trim().length < 3) throw new Error("Name must be at least 3 characters");
+        if (!name?.trim()) throw new ValidationError("Name cannot be empty");
+        if (name.trim().length < 3) throw new ValidationError("Name must be at least 3 characters");
     }
 
     private static formatName(name: string): string {
         const normalized = normalizeName(name);
         User.validateName(normalized);
 
-        return capitalizeFirstLetter(normalized);
+        return normalized;
     }
 
     private validateRole(role: UserRole): void {
-        if (!Object.values(UserRole).includes(role)) throw new Error("Role is invalid");
+        if (!Object.values(UserRole).includes(role)) throw new ValidationError("Role is invalid");
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Product is deleted");
     }
 
     private touch(): void {

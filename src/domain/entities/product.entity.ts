@@ -8,6 +8,7 @@ import normalizeName from "../utils/normalize-name";
 import { ProductColor } from "./product-color";
 import { ProductMaterial } from "./product-material";
 import { ProductSize } from "../enums/product-size.enum";
+import { ValidationError } from "../errors/validation.error";
 
 type ProductProps = Readonly<{
     id: string,
@@ -26,22 +27,22 @@ type ProductProps = Readonly<{
 
 export class Product {
     private readonly _id: string;
-    private _sku: string;
     private _name: string;
     private _type: ProductType;
     private _price: number;
     private _size: ProductSize;
     private _modelId: string;
-    private _materials: ProductMaterial[];
-    private _colors: ProductColor[];
+    private _materialIds: string[];
+    private _colorIds: string[];
     private _mlProductId?: string; // vínculo futuro com ML
+    private _sku: string;
     private _barcode?: string;
     private _createdAt: Date;
     private _updatedAt: Date;
     private _deletedAt?: Date;
 
     private constructor(props: ProductProps) {
-        if (!props.id?.trim()) throw new Error("Id cannot be empty");
+        if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         this.validateSize(props.size);
         this.validateModel(props.modelId);
         Product.validateName(props.name);
@@ -58,8 +59,8 @@ export class Product {
         this._barcode = props.barcode;
         this._size = props.size;
         this._modelId = props.modelId;
-        this._materials = [];
-        this._colors = [];
+        this._materialIds = [];
+        this._colorIds = [];
         this._mlProductId = props.mlProductId;
         this._createdAt = props.createdAt;
         this._updatedAt = props.updatedAt;
@@ -72,10 +73,10 @@ export class Product {
         price: number,
         type: ProductType,
         sku: string,
-        barcode?: string,
         size: ProductSize,
         modelId: string,
         mlProductId?: string,
+        barcode?: string,
     }): Product {
         const now = new Date();
 
@@ -95,11 +96,11 @@ export class Product {
         });
     }
 
-    static restore(props: ProductProps & { colors: ProductColor[], materials: ProductMaterial[] }): Product {
+    static restore(props: ProductProps & { colors: string[], materials: string[] }): Product {
         const product = new Product(props);
 
-        product._colors = props.colors;
-        product._materials = props.materials;
+        product._colorIds = props.colors;
+        product._materialIds = props.materials;
 
         return product;
     }
@@ -113,6 +114,7 @@ export class Product {
     }
 
     changeSku(sku: string): void {
+        this.ensureNotDeleted();
         if (sku === this._sku) return;
         this.validateSku(sku);
 
@@ -125,6 +127,7 @@ export class Product {
     }
 
     rename(name: string): void {
+        this.ensureNotDeleted();
         const formattedName = Product.formatName(name);
         if (formattedName === this._name) return;
 
@@ -137,6 +140,7 @@ export class Product {
     }
 
     changePrice(price: number): void {
+        this.ensureNotDeleted();
         if (price === this.price) return;
         this.validatePrice(price);
 
@@ -150,6 +154,7 @@ export class Product {
 
 
     changeType(type: ProductType): void {
+        this.ensureNotDeleted();
         if (type === this.type) return;
         this.validateType(type);
 
@@ -162,6 +167,7 @@ export class Product {
     }
 
     changeSize(size: ProductSize): void {
+        this.ensureNotDeleted();
         if (size === this.size) return;
         this.validateSize(size);
 
@@ -174,6 +180,7 @@ export class Product {
     }
 
     changeModel(modelId: string): void {
+        this.ensureNotDeleted();
         if (modelId === this.modelId) return;
         this.validateModel(modelId);
 
@@ -186,6 +193,7 @@ export class Product {
     }
 
     changeMlProductId(mlProductId: string) {
+        this.ensureNotDeleted();
         if (mlProductId === this.mlProductId) return;
         this.validateMlProductId(mlProductId);
 
@@ -198,6 +206,7 @@ export class Product {
     }
 
     changeBarcode(barcode?: string): void {
+        this.ensureNotDeleted();
         if (barcode === this._barcode) return;
 
         // adicionar um novo barcode
@@ -208,111 +217,166 @@ export class Product {
         this.touch();
     }
 
-    get colors(): ProductColor[] {
-        return [...this._colors];
+    get colors(): string[] {
+        return [...this._colorIds];
     }
 
-    addColor(input: { id: string; colorId: string }): void {
-        if (!input.colorId?.trim()) throw new Error("Color id cannot be empty");
+    addColor(input: { colorId: string }): void {
+        this.ensureNotDeleted();
+        if (!input.colorId?.trim()) throw new ValidationError("Color id cannot be empty");
         // evita duplicidade
-        if (this._colors.some(color => color.colorId === input.colorId)) throw new Error("Color already exists");
+        if (this._colorIds.some(id => id === input.colorId)) throw new ValidationError("Color already exists");
 
-        this._colors.push(new ProductColor({
-            id: input.id,
-            productId: this._id,
-            colorId: input.colorId,
-        }));
+        this._colorIds.push(input.colorId)
+        this.touch();
+    }
 
+    changeColors(colorIds: string[]): void {
+        this.ensureNotDeleted();
+
+        if (!colorIds || colorIds.length === 0) throw new ValidationError("Product must have at least one color");
+
+        const uniqueIds = [...new Set(colorIds)];
+
+        // valida se algum id é inválido (string vazia, etc)
+        if (uniqueIds.some(id => !id?.trim())) {
+            throw new ValidationError("Invalid color id");
+        }
+
+        this._colorIds = uniqueIds;
         this.touch();
     }
 
     removeColor(colorId: string): void {
+        this.ensureNotDeleted();
         // salva o tamanho inicial
-        const initialLength = this._colors.length;
+        const initialLength = this._colorIds.length;
 
-        this._colors = this._colors.filter(color => color.colorId !== colorId);
+        // reecria o array evitando a props 'colorId'
+        this._colorIds = this._colorIds.filter(id => id !== colorId);
 
         // se tiver alteração no tamanho inicial, touch!
-        if (this._colors.length !== initialLength) this.touch();
+        if (this._colorIds.length !== initialLength) this.touch();
     }
 
-    get materials(): ProductMaterial[] {
-        return [...this._materials];
+    get materials(): string[] {
+        return [...this._materialIds];
     }
 
-    addMaterial(input: { id: string; materialId: string }): void {
-        if (!input.materialId?.trim()) throw new Error("Material id cannot be empty");
+    addMaterial(input: { materialId: string }): void {
+        this.ensureNotDeleted();
+        if (!input.materialId?.trim()) throw new ValidationError("Material id cannot be empty");
         // evita duplicidade
-        if (this._materials.some(material => material.materialId === input.materialId)) throw new Error("Material already exists");
+        if (this._materialIds.some(id => id === input.materialId)) throw new ValidationError("Material already exists");
 
-        this._materials.push(new ProductMaterial({
-            id: input.id,
-            productId: this._id,
-            materialId: input.materialId,
-        }));
+        this._materialIds.push(input.materialId);
 
         this.touch();
     }
 
-    removeMaterial(materialId: string): void {
-        // salva o tamanho inicial
-        const initialLength = this._materials.length;
+    changeMaterials(materialIds: string[]): void {
+        this.ensureNotDeleted();
 
-        this._materials = this._materials.filter(material => material.materialId !== materialId);
+        if (!materialIds) {
+            this._materialIds = [];
+            this.touch();
+            return;
+        };
+
+        const uniqueIds = [...new Set(materialIds)];
+
+        // valida se algum id é inválido (string vazia, etc)
+        if (uniqueIds.some(id => !id?.trim())) {
+            throw new ValidationError("Invalid color id");
+        }
+
+        this._materialIds = uniqueIds;
+        this.touch();
+    }
+
+    removeMaterial(materialId: string): void {
+        this.ensureNotDeleted();
+        // salva o tamanho inicial
+        const initialLength = this._materialIds.length;
+
+        this._materialIds = this._materialIds.filter(id => id !== materialId);
 
         // se tiver alteração no tamanho inicial, touch!
-        if (this._materials.length !== initialLength) this.touch();
+        if (this._materialIds.length !== initialLength) this.touch();
     }
 
     get createdAt(): Date {
-        return this._createdAt;
+        return new Date(this._createdAt);
     }
 
     get updatedAt(): Date {
-        return this._updatedAt;
+        return new Date(this._updatedAt);
     }
 
     get deletedAt(): Date | undefined {
-        return this._deletedAt;
+        return this._deletedAt ? new Date(this._deletedAt) : undefined;
+    }
+
+    delete(): void {
+        this.ensureNotDeleted();
+
+        this._deletedAt = new Date();
+        this.touch();
+    }
+
+    restoreDeleted(): void {
+        if (!this._deletedAt) return;
+
+        this._deletedAt = undefined;
+        this.touch();
+    }
+
+    isActive(): boolean {
+        return !this._deletedAt;
     }
 
     private validatePrice(price: number): void {
-        if (price < 0 || !Number.isFinite(price)) throw new Error("Invalid price");
+        // valor deve ser maior que 0!
+        if (price <= 0 || !Number.isFinite(price)) throw new ValidationError("Invalid price");
     }
 
     private static validateName(name: string): void {
-        if (!name?.trim()) throw new Error("Name cannot be empty");
+        if (!name?.trim()) throw new ValidationError("Name cannot be empty");
     }
 
     private validateSku(sku: string): void {
-        if (!sku?.trim()) throw new Error("Sku cannot be empty");
+        if (!sku?.trim()) throw new ValidationError("Sku cannot be empty");
     }
 
-    private validateSize(size: ProductSize): void {        
-        if (!Object.values(ProductSize).includes(size)) throw new Error("Product size is invalid");
+    private validateSize(size: ProductSize): void {
+        if (!Object.values(ProductSize).includes(size)) throw new ValidationError("Product size is invalid");
     }
 
     private validateModel(model: string): void {
-        if (!model?.trim()) throw new Error("Model cannot be empty");
+        if (!model?.trim()) throw new ValidationError("Model cannot be empty");
     }
 
     private validateMlProductId(mlProductId: string): void {
-        if (!mlProductId?.trim()) throw new Error("ID Mercado Livre is invalid");
+        if (!mlProductId?.trim()) throw new ValidationError("ID Mercado Livre is invalid");
     }
 
     private validateBarCode(barcode: string): void {
-        if (!barcode?.trim()) throw new Error("Barcode cannot be empty");
+        if (!barcode?.trim()) throw new ValidationError("Barcode cannot be empty");
     }
 
     private validateType(type: ProductType): void {
-        if (!Object.values(ProductType).includes(type)) throw new Error("Product type is invalid");
+        if (!Object.values(ProductType).includes(type)) throw new ValidationError("Product type is invalid");
     }
 
     private static formatName(name: string): string {
         const normalized = normalizeName(name);
         Product.validateName(normalized);
 
-        return capitalizeFirstLetter(normalized);
+        return normalized;
+    }
+
+    private ensureNotDeleted(): void {
+        if (!this.isActive) throw new ValidationError("Product is deleted");
     }
 
     private touch(): void {

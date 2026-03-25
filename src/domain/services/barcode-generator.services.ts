@@ -1,3 +1,3 @@
-export interface BarcodeGeneratorSerive {
+export interface BarcodeGeneratorService {
     generete(): string;
 }
