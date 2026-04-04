@@ -8,53 +8,55 @@ datasource db {
 }
 
 model Size {
-  id       String      @id
-  size     ProductSize
-  products Product[]
+  id   String      @id
+  size ProductSize
 }
 
 model Material {
   id              String            @id
   name            String
   createdAt       DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime?         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @db.Timestamptz(6)
   deletedAt       DateTime?         @db.Timestamptz(6)
+  normalizedName  String
   ProductMaterial ProductMaterial[]
 }
 
 model Model {
-  id        String    @id
-  name      String
-  createdAt DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
-  deletedAt DateTime? @db.Timestamptz(6)
-  products  Product[]
+  id             String    @id
+  name           String
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt      DateTime? @db.Timestamptz(6)
+  normalizedName String
+  products       Product[]
 }
 
 model Color {
-  id           String         @id
-  name         String
-  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime?      @default(now()) @db.Timestamptz(6)
-  deletedAt    DateTime?      @db.Timestamptz(6)
-  ProductColor ProductColor[]
+  id             String         @id
+  name           String
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @db.Timestamptz(6)
+  deletedAt      DateTime?      @db.Timestamptz(6)
+  normalizedName String
+  ProductColor   ProductColor[]
 }
 
 model Product {
   id                                                            String             @id
   name                                                          String
-  sku                                                           String
-  barcode                                                       String             @unique(map: "product_barcode_unique") @db.Char(12)
+  sku                                                           String             @unique(map: "product_sku_unique")
+  barcode                                                       String?            @unique(map: "product_barcode_unique") @db.Char(13)
   price                                                         Float
   mlProductId                                                   String?
-  sizeId                                                        String
   modelId                                                       String
   type                                                          ProductType        @default(PRODUCT)
   createdAt                                                     DateTime           @default(now()) @db.Timestamptz(6)
-  updatedAt                                                     DateTime?          @default(now()) @db.Timestamptz(6)
+  updatedAt                                                     DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                                     DateTime?          @db.Timestamptz(6)
+  size                                                          ProductSize?
+  normalizedName                                                String
   model                                                         Model              @relation(fields: [modelId], references: [id])
-  size                                                          Size               @relation(fields: [sizeId], references: [id])
   ProductColor                                                  ProductColor[]
   ProductComponent_ProductComponent_componentProductIdToProduct ProductComponent[] @relation("ProductComponent_componentProductIdToProduct")
   ProductComponent_ProductComponent_parentProductIdToProduct    ProductComponent[] @relation("ProductComponent_parentProductIdToProduct")
@@ -62,26 +64,27 @@ model Product {
   stocks                                                        ProductStock[]
 
   @@index([modelId], map: "idx_product_model")
-  @@index([sizeId], map: "idx_product_size")
 }
 
 model User {
-  id        String    @id
-  name      String
-  role      UserRole
-  isActive  Boolean
-  createdAt DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
-  deletedAt DateTime? @db.Timestamptz(6)
+  id             String    @id
+  name           String
+  role           UserRole
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  deletedAt      DateTime? @db.Timestamptz(6)
+  password       String
+  nickname       String
+  normalizedName String
 }
 
 model ProductStock {
   id        String    @id
   stockId   String
   productId String
-  quantity  Int?
+  quantity  Int
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
   product   Product   @relation(fields: [productId], references: [id])
   stock     Stock     @relation(fields: [stockId], references: [id])
@@ -110,11 +113,10 @@ model ProductComponent {
 model Stock {
   id        String         @id(map: "Estoque_pkey")
   name      String
-  isActive  Boolean
   type      StockType
   storeId   String?
   createdAt DateTime       @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime?      @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime       @default(now()) @db.Timestamptz(6)
   deletedAt DateTime?      @db.Timestamptz(6)
   products  ProductStock[]
   Store     Store?         @relation(fields: [storeId], references: [id], map: "Estoque_storeId_fkey")
@@ -122,9 +124,9 @@ model Stock {
 
 model Store {
   id        String    @id(map: "Loja_pkey")
-  nome      String
+  name      String
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
   Stock     Stock[]
 }
@@ -162,7 +164,7 @@ model StockMoviment {
   totalPrice     Decimal?          @db.Decimal
   userId         String?
   createdAt      DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime?         @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime          @default(now()) @db.Timestamptz(6)
   deletedAt      DateTime?         @db.Timestamptz(6)
 }
 
