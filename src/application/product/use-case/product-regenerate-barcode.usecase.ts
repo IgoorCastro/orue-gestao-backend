@@ -20,7 +20,7 @@ export class RegenerateProductBarcodeUseCase {
         let exists = true;
         // roda até gerar um bc disponivel
         while (exists) {
-            bc = this.barcode.generete();
+            bc = await this.barcode.generate();
             exists = await this.productRepository.existsByBarcode(bc); // true para positivo
         }
 

@@ -17,6 +17,10 @@ export class FindModelByIdUseCase {
         return {
             id: findedModel.id,
             name: findedModel.name,
+            normalizedName: findedModel.normalizedName,
+            createdAt: findedModel.createdAt,
+            updatedAt: findedModel.updatedAt,
+            deletedAt: findedModel.deletedAt,
         };
     }
 }

@@ -90,15 +90,15 @@ export async function GET(req: NextRequest) {
         const type = searchParams.get("type") ?? undefined;
         // trabalhar com min e max price
         // para criar um rage de preços para pesquisa
-        const minPrice = parseNumber(searchParams.get("minPrice"));
-        const maxPrice = parseNumber(searchParams.get("maxPrice"));
+        const minPrice = searchParams.get("minPrice") ?? undefined;
+        const maxPrice = searchParams.get("maxPrice") ?? undefined;
         const limitParam = searchParams.get("limit");
         const pageParam = searchParams.get("page");
         const orderBy = searchParams.get("orderBy") ?? undefined;
         // multiplos parametros
         // filtra com uma ou mais strings
         const models = searchParams.getAll("models");
-        const colors = searchParams.getAll("colors");
+        const colors = searchParams.getAll("colors[]");
         const materials = searchParams.getAll("materials");
 
         function makeFilterMap() {
@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
 
             return new ProductFilterMapper(colorRep, materialRep, modelRep);
         }
+
 
         const page = pageParam ? Number(pageParam) : undefined;
         const limit = limitParam ? Number(limitParam) : undefined;
@@ -128,10 +129,15 @@ export async function GET(req: NextRequest) {
             limit: Number(limit),
             type: type as ProductType,
         })
-        const productRepository = new PrismaProductRepository(prisma);
-        const findWithFilter = new FindProductsUseCase(productRepository);
+
+        
+        // console.log("FILTERSSS: ", filter)
+        
+        const findWithFilter = new FindProductsUseCase(new PrismaProductRepository(prisma));
 
         const product = await findWithFilter.execute(filter);
+
+        console.log("product: ", product)
 
         return NextResponse.json(product, { status: 200 });
     } catch (error: unknown) {

@@ -19,7 +19,7 @@ export class Store {
     private _deletedAt?: Date;
 
     private constructor(props: StoreProps) {
-        if(!props.id?.trim()) throw new ValidationError("Id is required");
+        if (!props.id?.trim()) throw new ValidationError("Id is required");
 
         this._id = props.id;
         this._name = props.name;
@@ -54,7 +54,7 @@ export class Store {
     rename(name: string): void {
         const formattedName = Store.formatName(name);
         this.ensureNotDeleted();
-        if(formattedName === this._name) return;
+        if (formattedName === this._name) return;
 
         this._name = formattedName;
         this.touch();
@@ -94,6 +94,16 @@ export class Store {
         return !this._deletedAt;
     }
 
+    toJSON() {
+        return {
+            id: this._id,
+            name: this._name,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+        };
+    }
+
     private static validateName(name: string) {
         if (!name?.trim()) throw new ValidationError("Name cannot be empty")
     }
@@ -106,7 +116,7 @@ export class Store {
     }
 
     private ensureNotDeleted(): void {
-        if (!this.isActive) throw new ValidationError("Product is deleted");
+        if (!this.isActive()) throw new ValidationError("Product is deleted");
     }
 
     private touch(): void {

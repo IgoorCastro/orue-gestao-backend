@@ -16,4 +16,8 @@ export class Password {
     getValue(): string {
         return this.value;
     }
+
+    toJSON(): string {
+        return this.value;
+    }
 }

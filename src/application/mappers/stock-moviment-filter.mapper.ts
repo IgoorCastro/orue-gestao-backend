@@ -1,4 +1,5 @@
 import { StockMovimentType } from "@/src/domain/enums/stock-moviment-type.enum";
+import { StockRepository } from "@/src/domain/repositories/stock.repository";
 
 type FindStockMovimentFilteredInputDto = {
     readonly type?: string;
@@ -48,6 +49,7 @@ export type FindStockMovimentFilteredOutputDto = Readonly<{
 }>
 
 export class StockMovimentFilterMapper {
+
     async map(input: FindStockMovimentFilteredInputDto): Promise<FindStockMovimentFilteredOutputDto> {
         const price =
             input.priceGte !== undefined || input.priceLte !== undefined

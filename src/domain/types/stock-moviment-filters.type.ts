@@ -14,8 +14,8 @@ export type StockMovimentFilters = Readonly<{
         lte?: number,
     },
     createdAt?: {
-        gte?: string;
-        lte?: string;
+        gte?: Date;
+        lte?: Date;
     };
     orderBy?: {
         field: "createdAt" | "quantity" | "totalPrice";

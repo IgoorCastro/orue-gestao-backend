@@ -10,13 +10,14 @@ import { CreateStockMovimentUseCase } from "@/src/application/stock-moviment/use
 import { PrismaStockMovimentRepository } from "@/src/infrastructure/database/repositories/prisma-stock-moviment.repository";
 import { prisma } from "@/src/infrastructure/database/prisma/client";
 import { PrismaStockRepository } from "@/src/infrastructure/database/repositories/prisma-stock.repository";
-import { PrismaProductRepository } from "@/src/infrastructure/database/repositories/prisma-product.repository";
 import { PrismaUserRepository } from "@/src/infrastructure/database/repositories/prisma-user.repository";
 import { UUIDGenerator } from "@/src/infrastructure/services/uuid-generator";
 import { PrismaProductStockRepository } from "@/src/infrastructure/database/repositories/prisma-product-stock.repository";
 import { FindStockMovimentByIdUseCase } from "@/src/application/stock-moviment/use-case/stock-moviment-find-byId.usecase";
 import { StockMovimentFilterMapper } from "@/src/application/mappers/stock-moviment-filter.mapper";
 import { FindStockMovimentsUseCase } from "@/src/application/stock-moviment/use-case/stock-moviment-find.usecase";
+import { StockMoviment } from "@/src/domain/entities/stock-moviment.entity";
+import { FindStockMovimentOutputDto } from "@/src/application/stock-moviment/dto/stock-moviment-find.dto";
 
 // Rota POST
 // body esperado: type, unitPrice, totalPrice, quantity, fromStockId, toStockId, productStockId, userId
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
         }
 
         const createUseCase = makeCreateUseCase();
+        // console.log("SM: ", body)
 
         const sm = await createUseCase.execute({
             ...body,
@@ -71,11 +73,11 @@ export async function GET(req: NextRequest) {
         const fromStockId = searchParams.get("fromStockId") ?? undefined;
         const toStockId = searchParams.get("toStockId") ?? undefined;
         const productStockId = searchParams.get("productStockId") ?? undefined;
-        const userId = searchParams.get("useId") ?? undefined;
+        const userId = searchParams.get("user") ?? undefined;
         const priceGte = parseNumber(searchParams.get("price_gte"));
         const priceLte = parseNumber(searchParams.get("price_lte"));
-        const createdAtGte = searchParams.get("createdAt_gte") ?? undefined;
-        const createdAtLte = searchParams.get("createdAt_lte") ?? undefined;
+        const createdAtGte = searchParams.get("fromDate") ?? undefined; // MIN
+        const createdAtLte = searchParams.get("toDate") ?? undefined; // MAX
 
         const limitParam = searchParams.get("limit") ?? undefined;
         const pageParam = searchParams.get("page") ?? undefined;
@@ -86,7 +88,13 @@ export async function GET(req: NextRequest) {
         const limit = limitParam ? Number(limitParam) : undefined;
 
         // mapeamento dos params
-        const filterMapper = new StockMovimentFilterMapper();
+        function makeFilterMap() {
+            const stockRep = new PrismaStockRepository(prisma);
+
+            // return new StockMovimentFilterMapper(stockRep);
+            return new StockMovimentFilterMapper();
+        }
+        const filterMapper = makeFilterMap();
         const filter = await filterMapper.map({
             createdAtGte,
             createdAtLte,
@@ -102,8 +110,10 @@ export async function GET(req: NextRequest) {
             type,
             userId,
         });
-        
+
+
         const findUseCase = new FindStockMovimentsUseCase(new PrismaStockMovimentRepository(prisma));
+
         const sm = await findUseCase.execute(filter);
 
         return NextResponse.json(sm, { status: 200 });
@@ -125,5 +135,5 @@ export async function GET(req: NextRequest) {
         if (!value) return undefined;
         const num = Number(value);
         return isNaN(num) ? undefined : num;
-    }
+    }  
 }

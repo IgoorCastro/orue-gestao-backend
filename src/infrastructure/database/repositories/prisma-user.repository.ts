@@ -57,6 +57,7 @@ export class PrismaUserRepository implements UserRepository {
     // find com filtro
     // retorna uma lista de usuarios e pode ser filtrada
     async findMany(filters: { name?: string; role?: UserRole; nickname?: string; }): Promise<User[]> {
+        console.log("\n\nPRSIMA >> USER >> filters: ", filters)
         const users = await this.prisma.user.findMany({
             where: {
                 normalizedName: filters.name

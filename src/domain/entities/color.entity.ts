@@ -92,6 +92,7 @@ export class Color {
         return this._deletedAt;
     }
 
+
     // soft delete
     delete(): void {
         this.ensureNotDeleted();
@@ -110,6 +111,17 @@ export class Color {
 
     isActive(): boolean {
         return !this._deletedAt;
+    }
+
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            normalizedName: this.normalizedName,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+            deletedAt: this.deletedAt,
+        };
     }
 
     private static validateName(name: string) {

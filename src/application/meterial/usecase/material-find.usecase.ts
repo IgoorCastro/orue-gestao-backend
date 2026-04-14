@@ -1,21 +1,20 @@
-import { UserRole } from "@/src/domain/enums/user-role.enum";
-import { ColorRepository } from "@/src/domain/repositories/color.repository";
 import { MaterialRepository } from "@/src/domain/repositories/material.repository";
-import { UserRepository } from "@/src/domain/repositories/user.repository";
-
-type Input = {
-    id?: string;
-    name?: string;
-};
+import { FindMaterialFilteredDto, FindMaterialOutputDto } from "../dto/material-find.dto";
 
 export class FindMaterialsUseCase {
     constructor(private readonly materialRepository: MaterialRepository) {}
-    async execute(input: Input) {
-        // caso o find for por ID
-        if (input.id) return this.materialRepository.findById(input.id);
+    async execute(filters: FindMaterialFilteredDto): Promise<FindMaterialOutputDto[]> {
 
-        return this.materialRepository.findMany({
-            name: input.name,
-        });
+        const materials = await this.materialRepository.findMany({
+            ...filters,
+        })
+
+        return materials.map(m => ({
+            id: m.id,
+            name: m.name,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+            deletedAt: m.deletedAt,
+        }))
     }
 }

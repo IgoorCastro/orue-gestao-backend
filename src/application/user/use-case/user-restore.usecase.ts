@@ -14,8 +14,6 @@ export class UserRestoreByIdUseCase {
         const user = await this.userRepository.findById(input.id);
         if(!user) throw new NotFoundError("User not found");
 
-        console.log("UC ~ USER: ", user)
-
         user.restoreDeleted();
 
         await this.userRepository.save(user);

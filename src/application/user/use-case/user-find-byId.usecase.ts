@@ -1,5 +1,4 @@
 import { UserRepository } from "@/src/domain/repositories/user.repository";
-import { UuidGenerator } from "@/src/domain/services/uuid-generator.services";
 import { FindUserByIdInputDto, FindUserOutputDto } from "../dto/user-find.dto";
 import { ValidationError } from "@/src/domain/errors/validation.error";
 import { NotFoundError } from "@/src/domain/errors/not-found.error";

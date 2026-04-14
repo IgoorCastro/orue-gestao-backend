@@ -51,6 +51,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 { status: 400 }
             );
 
+        console.log("BODY: ", body)
+
         function makeUpdateProductUseCase() {
             const productRepository = new PrismaProductRepository(prisma);
             const colorRepository = new PrismaColorRepository(prisma);

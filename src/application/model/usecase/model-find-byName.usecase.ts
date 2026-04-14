@@ -15,6 +15,10 @@ export class FindModelByName {
         return findedModel.map(model => ({
             id: model.id,
             name: model.name,
+            normalizedName: model.normalizedName,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt,
+            deletedAt: model.deletedAt,
         }));
     }
 }

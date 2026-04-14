@@ -4,20 +4,14 @@
 
 import { UuidGeneratorServices } from "@/src/domain/services/uuid-generator.services";
 import { CreateStockMoivmentInputDto, CreateStockMoivmentOutputDto } from "../dto/stock-moviment-create.dto";
-import normalizeName from "@/src/domain/utils/normalize-name";
 import { ValidationError } from "@/src/domain/errors/validation.error";
-import { ConflictError } from "@/src/domain/errors/conflict.error";
-import { StoreRepository } from "@/src/domain/repositories/store.repository";
-import { Store } from "@/src/domain/entities/store.entity";
 import { StockRepository } from "@/src/domain/repositories/stock.repository";
-import { ProductRepository } from "@/src/domain/repositories/product.repository";
 import { UserRepository } from "@/src/domain/repositories/user.repository";
 import { StockMovimentRepository } from "@/src/domain/repositories/stock-moviment.repository";
 import { NotFoundError } from "@/src/domain/errors/not-found.error";
 import { StockMoviment } from "@/src/domain/entities/stock-moviment.entity";
-import { StockType } from "@/src/domain/enums/stock-type.enum";
 import { ProductStockRepository } from "@/src/domain/repositories/product-stock.repository";
-import { ProductStock as ProductStockEntity} from "@/src/domain/entities/product-stock.entity";
+import { ProductStock, ProductStock as ProductStockEntity } from "@/src/domain/entities/product-stock.entity";
 import { StockMovimentType } from "@/src/domain/enums/stock-moviment-type.enum";
 
 export class CreateStockMovimentUseCase {
@@ -30,23 +24,22 @@ export class CreateStockMovimentUseCase {
     ) { }
 
     async execute(input: CreateStockMoivmentInputDto): Promise<CreateStockMoivmentOutputDto> {
-
-        
         // VALIDAÇÃO BÁSICA        
         if (!input.type) throw new ValidationError("Type cannot be empty");
         if (!input.quantity) throw new ValidationError("Quantity cannot be empty");
         if (!input.unitPrice) throw new ValidationError("Unit price cannot be empty");
         if (!input.totalPrice) throw new ValidationError("Total price cannot be empty");
 
-        
         // BUSCAR DADOS        
         const [productStock, user] = await Promise.all([
             this.productStockRepository.findById(input.productStockId),
             this.userRepository.findById(input.userId),
         ]);
 
-        if (!productStock) throw new NotFoundError("Product stock not found");
+        // INBOUND não testa productStock, pois sera inserido um novo PRODUTO
+        if (!productStock && input.type !== StockMovimentType.INBOUND) throw new NotFoundError("Product stock not found");
         if (!user) throw new NotFoundError("User not found");
+
 
         if (input.fromStockId) {
             const fromStock = await this.stockRepository.findById(input.fromStockId);
@@ -59,27 +52,43 @@ export class CreateStockMovimentUseCase {
         }
 
         // garante consistência entre productStock e fromStock
-        if (input.fromStockId && productStock.stockId !== input.fromStockId) {
+        if (input.fromStockId && productStock?.stockId !== input.fromStockId) {
             throw new ValidationError("Produto não pertence ao estoque informado");
         }
 
-        
+
         // REGRAS DE NEGÓCIO
         const updates: ProductStockEntity[] = [];
+        let primaryProductStock: ProductStockEntity; // O PS principal da movimentação
+
 
         //INBOUND
         if (input.type === StockMovimentType.INBOUND) {
-            if (!input.toStockId) {
-                throw new ValidationError("Inbound requires toStockId");
+            console.log("\n\n--INBOUND--\n\n")
+            if (!input.toStockId) throw new ValidationError("Inbound requires toStockId");
+
+            // verificar se ja existe uma relação entre Produto x Estoque
+            // para adicionar novos produtos
+            // Tenta achar a relação. Se não existe, cria.
+            let ps = await this.productStockRepository.findByProductAndStockId(input.productStockId, input.toStockId);
+            if (ps) {
+                ps.changeQuantity(ps.quantity + input.quantity);
+            } else {
+                ps = ProductStock.create({
+                    id: this.uuid.generate(),
+                    productId: input.productStockId, // ID do Produto vindo do DTO
+                    quantity: input.quantity,
+                    stockId: input.toStockId,
+                });
             }
-
-            productStock.changeQuantity(productStock.quantity + input.quantity);
-
-            updates.push(productStock);
+            primaryProductStock = ps;
+            updates.push(ps);
         }
 
         // OUTBOUND
-        if (input.type === StockMovimentType.OUTBOUND) {
+        if (input.type === StockMovimentType.OUTBOUND && productStock) {
+            // console.log("INPUT: ", input)
+            // console.log("productStock: ", productStock)
             if (!input.fromStockId) {
                 throw new ValidationError("Outbound requires fromStockId");
             }
@@ -94,7 +103,7 @@ export class CreateStockMovimentUseCase {
         }
 
         // TRANSFER
-        if (input.type === StockMovimentType.TRANSFER) {
+        if (input.type === StockMovimentType.TRANSFER && productStock) {
             if (!input.fromStockId || !input.toStockId) {
                 throw new ValidationError("Transfer requires fromStockId and toStockId");
             }
@@ -127,20 +136,20 @@ export class CreateStockMovimentUseCase {
 
                 updates.push(newToPS);
             }
-
             updates.push(productStock);
         }
 
-        
+
         // PERSISTIR ESTOQUES
-        
         await Promise.all(
-            updates.map(ps => this.productStockRepository.save(ps))
+            updates.map(ps => {
+                console.log("PS: ", ps)
+                return this.productStockRepository.save(ps)
+            })
         );
 
-        
+
         // REGISTRAR MOVIMENTAÇÃO
-        
         const sm = StockMoviment.create({
             id: this.uuid.generate(),
             type: input.type,
@@ -149,15 +158,17 @@ export class CreateStockMovimentUseCase {
             quantity: input.quantity,
             fromStockId: input.fromStockId ?? undefined,
             toStockId: input.toStockId ?? undefined,
-            productStockId: input.productStockId,
+            productStockId: primaryProductStock!?.id ?? input.productStockId,
             userId: input.userId,
         });
 
+
+                console.log("SM: ", sm)
         await this.stockMovimentRepository.save(sm);
 
-        
+
         // OUTPUT
-        
+
         return {
             id: sm.id,
             type: sm.type,

@@ -1,5 +1,4 @@
 import { StockRepository } from "@/src/domain/repositories/stock.repository";
-import { UuidGenerator } from "@/src/domain/services/uuid-generator.services";
 import { FindStockByIdInputDto, FindStockOutputDto } from "../dto/stock-find.dto";
 
 export class FindStockByIdUseCase {

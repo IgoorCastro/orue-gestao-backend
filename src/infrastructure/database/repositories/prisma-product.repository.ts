@@ -1,4 +1,8 @@
 import { PrismaClient, Prisma, ProductType as PrismaProductType } from "@/generated/prisma/client";
+import { Color } from "@/src/domain/entities/color.entity";
+import { Material } from "@/src/domain/entities/material.entity";
+import { ProductColor } from "@/src/domain/entities/product-color";
+import { ProductMaterial } from "@/src/domain/entities/product-material";
 import { Product } from "@/src/domain/entities/product.entity";
 import { ProductSize } from "@/src/domain/enums/product-size.enum";
 import { ProductType } from "@/src/domain/enums/product-type.enum";
@@ -84,6 +88,7 @@ export class PrismaProductRepository implements ProductRepository {
     // =========================
 
     async findWithFilters(filters: ProductFilters) {
+        console.log("\n\nINFRA >> PRISMA >> \nFILTERS: ", filters)
         const where: Prisma.ProductWhereInput = {
             name: filters.name
                 ? { contains: filters.name, mode: "insensitive" }
@@ -91,10 +96,10 @@ export class PrismaProductRepository implements ProductRepository {
 
             size: filters.size,
 
-            price: filters.price
+            price: filters.maxPrice || filters.minPrice
                 ? {
-                    ...(filters.price.gte !== undefined && { gte: filters.price.gte }),
-                    ...(filters.price.lte !== undefined && { lte: filters.price.lte }),
+                    ...(filters.minPrice !== undefined && { gte: Number(filters.minPrice) }),
+                    ...(filters.maxPrice !== undefined && { lte: Number(filters.maxPrice) }),
                 }
                 : undefined,
 
@@ -108,13 +113,18 @@ export class PrismaProductRepository implements ProductRepository {
 
             mlProductId: filters.mlProductId,
 
-            ProductColor: filters.colorIds?.length
-                ? { some: { colorId: { in: filters.colorIds } } }
-                : undefined,
-
-            ProductMaterial: filters.materialIds?.length
-                ? { some: { materialId: { in: filters.materialIds } } }
-                : undefined,
+            AND: [
+                ...(filters.colorIds?.map((colorId) => ({
+                    ProductColor: {
+                        some: { colorId }
+                    }
+                })) ?? []),
+                ...(filters.materialIds?.map((materialId) => ({
+                    ProductMaterial: {
+                        some: { materialId }
+                    }
+                })) ?? []),
+            ],
         };
 
         const limit = filters.limit ?? 10;
@@ -133,6 +143,8 @@ export class PrismaProductRepository implements ProductRepository {
             }),
             this.prisma.product.count({ where })
         ]);
+
+        // console.log(data.map((d) => d.ProductMaterial.map(m => m)));
 
         return {
             data: data.map(p => this.toDomain(p)),
@@ -183,8 +195,11 @@ export class PrismaProductRepository implements ProductRepository {
 
     // Atualiza produto + relações (cores e materiais)
     async save(product: Product): Promise<void> {
+    try {
+        console.log("\n\nINFRA >> PRISMA >> INICIANDO SALVAMENTO: ", product.id);
+
         await this.prisma.$transaction(async (prisma) => {
-            // Atualiza o produto principal
+            // 1. Atualiza o produto principal
             await prisma.product.update({
                 where: { id: product.id },
                 data: {
@@ -194,15 +209,18 @@ export class PrismaProductRepository implements ProductRepository {
                     size: product.size,
                     sku: product.sku,
                     barcode: product.barcode,
-                    model: { connect: { id: product.modelId } },
+                    // Se modelId for null/undefined, o connect pode quebrar. 
+                    // Usando ternário para segurança:
+                    model: product.modelId ? { connect: { id: product.modelId } } : undefined,
                     deletedAt: product.deletedAt ?? null,
                     updatedAt: product.updatedAt,
                 },
             });
 
-            // Atualiza cores
+            // 2. Atualiza cores (Delete + Create)
             await prisma.productColor.deleteMany({ where: { productId: product.id } });
-            if (product.colors.length) {
+            
+            if (product.colors && product.colors.length > 0) {
                 await prisma.productColor.createMany({
                     data: product.colors.map(colorId => ({
                         id: crypto.randomUUID(),
@@ -212,9 +230,10 @@ export class PrismaProductRepository implements ProductRepository {
                 });
             }
 
-            // Atualiza materiais
+            // 3. Atualiza materiais (Delete + Create)
             await prisma.productMaterial.deleteMany({ where: { productId: product.id } });
-            if (product.materials.length) {
+            
+            if (product.materials && product.materials.length > 0) {
                 await prisma.productMaterial.createMany({
                     data: product.materials.map(materialId => ({
                         id: crypto.randomUUID(),
@@ -224,7 +243,22 @@ export class PrismaProductRepository implements ProductRepository {
                 });
             }
         });
+
+        console.log("INFRA >> PRISMA >> SUCESSO");
+
+    } catch (error: any) {
+        // Log detalhado para matar o erro 500
+        console.error("\n\n--- [ERRO PRISMA SAVE] ---");
+        console.error("Mensagem:", error.message);
+        console.error("Código Prisma:", error.code); // Ex: P2002, P2025
+        console.error("Meta:", error.meta);
+        console.error("Stack:", error.stack);
+        console.error("---------------------------\n");
+
+        // Lança o erro para a camada superior (Service/Controller) tratar
+        throw new Error(`Falha ao salvar produto: ${error.message}`);
     }
+}
 
     async create(product: Product): Promise<void> {
         try {
@@ -278,6 +312,29 @@ export class PrismaProductRepository implements ProductRepository {
             modelId: prismaProduct.modelId,
             colors: prismaProduct.ProductColor.map(c => c.colorId),
             materials: prismaProduct.ProductMaterial.map(m => m.materialId),
+            productColor: prismaProduct.ProductColor?.map(pc =>
+                new ProductColor({
+                    id: pc.id,
+                    productId: pc.productId,
+                    colorId: pc.colorId,
+                    // Criando a instância da classe Color primeiro
+                    color: Color.create({
+                        id: pc.Color.id,
+                        name: pc.Color.name,
+                    }),
+                })
+            ) ?? undefined,
+            productMaterial: prismaProduct.ProductMaterial?.map(pm =>
+                new ProductMaterial({
+                    id: pm.id,
+                    materialId: pm.materialId,
+                    productId: pm.productId,
+                    material: Material.create({
+                        id: pm.Material.id,
+                        name: pm.Material.name,
+                    })
+                })
+            ),
             sku: prismaProduct.sku,
             barcode: prismaProduct.barcode ?? undefined,
             mlProductId: prismaProduct.mlProductId ?? undefined,
@@ -303,6 +360,7 @@ export class PrismaProductRepository implements ProductRepository {
     }
 
     private toPrismaCreate(product: Product): Prisma.ProductCreateInput {
+        console.log("PRISMA CREATE >> product", product)
         return {
             id: product.id,
             name: product.name,

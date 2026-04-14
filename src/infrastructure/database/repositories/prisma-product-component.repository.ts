@@ -4,7 +4,6 @@
 import { Prisma, PrismaClient, ProductComponent as PrismaProductComponent } from "@/generated/prisma/client";
 import { ProductComponent } from "@/src/domain/entities/product-component";
 import { ProductComponentRepository } from "@/src/domain/repositories/product-component.repository";
-import normalizeName from "@/src/domain/utils/normalize-name";
 
 export class PrismaProductComponentRepository implements ProductComponentRepository {
     constructor(private readonly prisma: PrismaClient) { }

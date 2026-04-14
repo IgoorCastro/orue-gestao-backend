@@ -157,7 +157,7 @@ export class User {
 
     // soft delete do estoque
     delete(): void {
-        if(this._role === UserRole.ADMIN) throw new Error("Cannot delete admin user");
+        if (this._role === UserRole.ADMIN) throw new Error("Cannot delete admin user");
         this.ensureNotDeleted();
 
         this._deletedAt = new Date();
@@ -175,6 +175,20 @@ export class User {
     // true para estoque desativado
     isActive(): boolean {
         return !this._deletedAt;
+    }
+
+    toJSON() {
+        return {
+            id: this._id,
+            name: this._name,
+            nickname: this._nickname,
+            normalizedName: this._normalizedName,
+            role: this._role,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+            // Password omitida propositalmente por segurança
+        };
     }
 
     private static validateName(name: string): void {

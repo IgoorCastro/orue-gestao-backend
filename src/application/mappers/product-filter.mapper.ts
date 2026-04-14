@@ -16,8 +16,8 @@ type FindProductFilteredInputDto = {
     readonly models?: string[];
     readonly colors?: string[];
     readonly materials?: string[];
-    readonly minPrice?: number;
-    readonly maxPrice?: number;
+    readonly minPrice?: string;
+    readonly maxPrice?: string;
     readonly orderBy?: string;
     readonly page?: number;
     readonly limit?: number;
@@ -38,6 +38,8 @@ export type FindProductFilteredOutputDto = Readonly<{
         gte?: number,
         lte?: number,
     },
+    maxPrice?: number,
+    minPrice?: number,
     orderBy?: {
         field: "name" | "price" | "createdAt";
         direction: "asc" | "desc";
@@ -52,12 +54,8 @@ export class ProductFilterMapper {
     ) { }
 
     async map(input: FindProductFilteredInputDto): Promise<FindProductFilteredOutputDto> {
-        // receber modelos, cores e materias via input
-        // retorna ID dos modelos, cores e materiais
-        // convertendo cores em colorIds
-        const colorIds = input.colors?.length
-            ? (await this.colorRepository.findByNames(input.colors)).map(c => c.id)
-            : undefined;
+        const minPrice = input.minPrice ? Number(input.minPrice) : 0;
+        const maxPrice = input.maxPrice ? Number(input.maxPrice) : undefined;
 
         // convertendo materais para materiaisId
         const materialIds = input.materials?.length
@@ -67,15 +65,7 @@ export class ProductFilterMapper {
         // convertendo modelos para modelId
         const modelIds = input.models?.length
             ? (await this.modelRepository.findByNames(input.models)).map(m => m.id)
-            : undefined;
-
-        const price =
-            input.minPrice !== undefined || input.maxPrice !== undefined
-                ? {
-                    gte: input.minPrice,
-                    lte: input.maxPrice,
-                }
-                : undefined;
+            : undefined;                    
 
         // validar o size e tipo 
         // para evitar erros
@@ -90,13 +80,14 @@ export class ProductFilterMapper {
             : undefined;
         return {
             name: input.name,
-            price,
+            maxPrice,
+            minPrice,
             type,
             size,
             barcode: input.barcode,
             mlProductId: input.mlProductId,
             modelIds,
-            colorIds,
+            colorIds: input.colors,
             materialIds,
             orderBy: this.mapOrderBy(input.orderBy),
             page: input.page,

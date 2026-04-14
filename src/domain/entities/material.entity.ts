@@ -64,7 +64,6 @@ export class Material {
     // normalizedName tbm deve ser alterado
     // aletração de nome deve refletir no normalizedNome
     rename(name: string): void {
-        console.log("rename ~~ name: ", name)
         this.ensureNotDeleted();
         const capitalizedName = Material.formatName(name);
         const normalizedName = Material.formatNormalizedName(name);
@@ -111,16 +110,25 @@ export class Material {
         return !this._deletedAt;
     }
 
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            normalizedName: this.normalizedName,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+            deletedAt: this.deletedAt,
+        };
+    }
+
     private static validateName(name: string): void {
         if (!name?.trim()) throw new ValidationError("Material name cannot be empty");
     }
 
     // altera a primeira letra do name
     private static formatName(name: string): string {
-        console.log("formatName ~~ name: ", name)
         const normalized = capitalizeFirstLetter(name);
         Material.validateName(normalized);
-        console.log("formatName ~~ normalized: ", normalized)
 
         return normalized;
     }
@@ -129,7 +137,6 @@ export class Material {
     private static formatNormalizedName(name: string): string {
         const normalized = normalizeName(name);
         Material.validateName(normalized);
-        console.log("formatNormalizedName ~~ normalized: ", normalized)
 
         return normalized;
     }

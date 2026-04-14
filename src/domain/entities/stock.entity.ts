@@ -1,14 +1,17 @@
 // entidade do estoque
 import { StockType } from "../enums/stock-type.enum";
 import { ValidationError } from "../errors/validation.error";
-import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
+import { Store } from "./store.entity";
 
 type StockProps = Readonly<{
     id: string,
     name: string,
     type: StockType,
+
+    store?: Store,
     storeId?: string,
+
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,
@@ -16,9 +19,13 @@ type StockProps = Readonly<{
 
 export class Stock {
     private readonly _id: string;
-    private _storeId?: string;
     private _name: string;
     private _type: StockType;
+
+    private _storeId?: string;
+
+    private _store?: Store;
+
     private _createdAt: Date;
     private _updatedAt: Date;
     private _deletedAt?: Date;
@@ -32,7 +39,11 @@ export class Stock {
         this._id = input.id;
         this._name = input.name;
         this._type = input.type;
+
         this._storeId = input.storeId;
+
+        this._store = input.store;
+
         this._createdAt = input.createdAt;
         this._updatedAt = input.updatedAt;
         this._deletedAt = input.deletedAt;
@@ -124,6 +135,10 @@ export class Stock {
         this.touch();
     }
 
+    get store(): Store | undefined {
+        return this._store;
+    }
+
     get createdAt(): Date {
         return this._createdAt;
     }
@@ -155,7 +170,19 @@ export class Stock {
     isActive(): boolean {
         return !this._deletedAt;
     }
-    
+
+    toJSON() {
+        return {
+            id: this._id,
+            name: this._name,
+            type: this._type,
+            storeId: this._storeId,
+            store: this._store ? this._store.toJSON() : undefined,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+        };
+    }
 
     private static validateName(name: string): void {
         if (!name?.trim()) throw new ValidationError("Name cannot be empty");
@@ -182,7 +209,7 @@ export class Stock {
     private ensureNotDeleted(): void {
         if (!this.isActive) throw new ValidationError("Stock is deleted");
     }
-    
+
     private touch(): void {
         this._updatedAt = new Date();
     }

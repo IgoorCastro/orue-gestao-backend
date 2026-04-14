@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
+  // "http://192.168.15.20:3000", // para liberar o acesso fora do localhost
 ];
 
 export default function proxy(req: NextRequest) {
@@ -17,6 +18,7 @@ export default function proxy(req: NextRequest) {
  
   headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  headers.set("Access-Control-Allow-Credentials", "true");
 
   // trata preflight
   if (req.method === "OPTIONS") {

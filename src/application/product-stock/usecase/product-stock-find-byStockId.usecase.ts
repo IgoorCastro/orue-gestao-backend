@@ -8,13 +8,15 @@ export class FindProductStockByStockIdUseCase {
         private productStockRepository: ProductStockRepository,
     ) { }
 
-    async execute(input: FindProductStockByStockIdInputDto): Promise<FindProductStockOutputDto> {
+    async execute(input: FindProductStockByStockIdInputDto): Promise<FindProductStockOutputDto[]> {
         if (!input.stockId) throw new ValidationError("Stock id cannot be empty");
 
-        const ps = await this.productStockRepository.findById(input.stockId);
-        if (!ps) throw new NotFoundError("Product stock not found");
+        const pSs = await this.productStockRepository.findByStockId(input.stockId);
 
-        return {
+        console.log("\n\pSs: ", pSs)
+
+
+        return pSs.map(ps => ({
             id: ps.id,
             productId: ps.productId,
             stockId: ps.stockId,
@@ -22,6 +24,14 @@ export class FindProductStockByStockIdUseCase {
             createdAt: ps.createdAt,
             updatedAt: ps.updatedAt,
             deletedAt: ps.deletedAt,
-        };
+
+            product: ps.product
+                ? {
+                    id: ps.product.id,
+                    name: ps.product.name,
+                    price: ps.product.price,
+                }
+                : undefined,
+        }))
     }
 }

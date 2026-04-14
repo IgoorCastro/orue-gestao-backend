@@ -1,8 +1,15 @@
 import { PrismaClient, StockType as PrismaStockType, Stock as PrismaStock, Prisma } from "@/generated/prisma/client";
 import { Stock } from "@/src/domain/entities/stock.entity";
+import { Store } from "@/src/domain/entities/store.entity";
 import { StockType } from "@/src/domain/enums/stock-type.enum";
 import { StockRepository } from "@/src/domain/repositories/stock.repository";
 import normalizeName from "@/src/domain/utils/normalize-name";
+
+type StockWithRelations = Prisma.StockGetPayload<{
+    include: {
+        Store: true,
+    }
+}>;
 
 export class PrismaStockRepository implements StockRepository {
     constructor(private readonly prisma: PrismaClient) { }
@@ -17,14 +24,13 @@ export class PrismaStockRepository implements StockRepository {
     }
 
     async findByName(name: string): Promise<Stock[]> {
-        console.log("NAME: ", name)
         const stocks = await this.prisma.stock.findMany({
             where: {
                 name: { contains: name, mode: "insensitive" },
                 deletedAt: null,
             }
         })
-        
+
         return stocks.map(stock => this.toDomain(stock));
     }
 
@@ -60,10 +66,13 @@ export class PrismaStockRepository implements StockRepository {
                     : undefined,
                 type: filters.type ?? undefined,
                 storeId: filters.storeId,
+            },
+            include: {
+                Store: true,
             }
         })
 
-        return stocks.map(st => this.toDomain(st));
+        return stocks.map(st => this.toDomainWithRelations(st));
     }
 
     async save(stock: Stock): Promise<void> {
@@ -78,7 +87,7 @@ export class PrismaStockRepository implements StockRepository {
     // MAPPERS
     // =========================
 
-    private toDomain(prismaStock: PrismaStock): Stock {
+    private toDomain(prismaStock: PrismaStock): Stock {// Verificamos se a propriedade Store existe no objeto vindo do Prisma
         return Stock.restore({
             id: prismaStock.id,
             name: prismaStock.name,
@@ -87,6 +96,29 @@ export class PrismaStockRepository implements StockRepository {
             createdAt: prismaStock.createdAt,
             updatedAt: prismaStock.updatedAt,
             deletedAt: prismaStock.deletedAt ?? undefined,
+        });
+    }
+
+    private toDomainWithRelations(prismaStock: StockWithRelations): Stock {// Verificamos se a propriedade Store existe no objeto vindo do Prisma
+        return Stock.restore({
+            id: prismaStock.id,
+            name: prismaStock.name,
+            type: this.mapTypeToDomain(prismaStock.type),
+            storeId: prismaStock.storeId ?? undefined,
+            createdAt: prismaStock.createdAt,
+            updatedAt: prismaStock.updatedAt,
+            deletedAt: prismaStock.deletedAt ?? undefined,
+
+            // Mapeamento seguro da Store
+            store: prismaStock.Store
+                ? Store.restore({
+                    id: prismaStock.Store.id,
+                    name: prismaStock.Store.name,
+                    createdAt: prismaStock.Store.createdAt,
+                    updatedAt: prismaStock.Store.updatedAt,
+                    deletedAt: prismaStock.Store.deletedAt ?? undefined,
+                })
+                : undefined,
         });
     }
 

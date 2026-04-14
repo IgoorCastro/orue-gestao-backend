@@ -13,7 +13,6 @@ type ProductComponentProps = Readonly<{
     updatedAt: Date,
     deletedAt?: Date,
 }>
-
 export class ProductComponent {
     private readonly _id: string;
     private _parentProductId: string;
@@ -134,6 +133,18 @@ export class ProductComponent {
 
     isActive(): boolean {
         return !this._deletedAt;
+    }
+
+    toJSON() {
+        return {
+            id: this._id,
+            parentProductId: this._parentProductId,
+            componentProductId: this._componentProductId,
+            quantity: this._quantity,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+        };
     }
 
     private validateParentProductId(parentProductId: string): void {

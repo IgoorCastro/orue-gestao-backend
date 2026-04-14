@@ -1,12 +1,18 @@
 // Entidade do item presente em um estoque
 
 import { ValidationError } from "../errors/validation.error";
+import { Product } from "./product.entity";
+import { Stock } from "./stock.entity";
 
 type ProductStockProps = Readonly<{
     id: string,
     stockId: string,
     productId: string,
     quantity: number,
+
+    product?: Product;
+    stock?: Stock;
+
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,
@@ -17,6 +23,10 @@ export class ProductStock {
     private _stockId: string;
     private _productId: string;
     private _quantity: number;
+
+    private _product?: Product;
+    private _stock?: Stock;
+
     private _createdAt: Date;
     private _updatedAt: Date;
     private _deletedAt?: Date;
@@ -31,6 +41,10 @@ export class ProductStock {
         this._productId = props.productId;
         this._stockId = props.stockId;
         this._quantity = props.quantity;
+
+        this._product = props.product;
+        this._stock = props.stock;
+
         this._createdAt = props.createdAt;
         this._updatedAt = props.updatedAt;
         this._deletedAt = props.deletedAt;
@@ -112,10 +126,18 @@ export class ProductStock {
     decrease(amount: number): void {
         this.ensureNotDeleted();
         this.validateAmount(amount);
-        if(amount > this._quantity) throw new ValidationError("Insufficient stock");
+        if (amount > this._quantity) throw new ValidationError("Insufficient stock");
 
         this._quantity -= amount;
         this.touch();
+    }
+
+    get product(): Product | undefined {
+        return this._product;
+    }
+
+    get stock(): Stock | undefined {
+        return this._stock;
     }
 
     get createdAt(): Date {
@@ -148,6 +170,20 @@ export class ProductStock {
         return !this._deletedAt;
     }
 
+    toJSON() {
+        return {
+            id: this._id,
+            stockId: this._stockId,
+            productId: this._productId,
+            quantity: this._quantity,
+            product: this._product ? this._product.toJSON() : undefined,
+            stock: this._stock ? this._stock.toJSON() : undefined,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+        };
+    }
+
     // testa apenas a quantidade 
     private validateQuantity(quantity: number): void {
         if (!Number.isSafeInteger(quantity) || quantity < 0) throw new ValidationError("Invalid quantity");
@@ -166,8 +202,8 @@ export class ProductStock {
     }
 
     private ensureNotDeleted(): void {
-            if (!this.isActive) throw new ValidationError("Product stock is deleted");
-        }
+        if (!this.isActive) throw new ValidationError("Product stock is deleted");
+    }
 
     private touch(): void {
         this._updatedAt = new Date();

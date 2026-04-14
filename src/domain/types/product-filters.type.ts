@@ -10,10 +10,9 @@ export type ProductFilters = Readonly<{
     type?: ProductType,
     barcode?: string,
     mlProductId?: string,
-    price?: {
-        gte?: number,
-        lte?: number,
-    },
+    maxPrice?: number,
+    minPrice?: number,
+    
     page?: number;
     limit?: number;
     orderBy?: {

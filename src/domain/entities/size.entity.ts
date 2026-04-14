@@ -12,7 +12,7 @@ export class Size {
     private _size: ProductSize;
 
     constructor(props: SizeProps) {
-        if(!props.id?.trim()) throw new ValidationError("Id cannot be empty");
+        if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
         this.validateSize(props.size);
 
         this._id = props.id;
@@ -24,9 +24,16 @@ export class Size {
     }
 
     changeSize(size: ProductSize): void {
-        if(size === this._size) return;
+        if (size === this._size) return;
         this.validateSize(size);
         this._size = size;
+    }
+
+    toJSON() {
+        return {
+            id: this._id,
+            size: this._size,
+        };
     }
 
     private validateSize(size: ProductSize) {

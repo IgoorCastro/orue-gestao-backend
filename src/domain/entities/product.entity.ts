@@ -5,22 +5,27 @@
 import { ProductType } from "../enums/product-type.enum";
 import capitalizeFirstLetter from "../utils/capitalize-first-letter";
 import normalizeName from "../utils/normalize-name";
-import { ProductColor } from "./product-color";
-import { ProductMaterial } from "./product-material";
 import { ProductSize } from "../enums/product-size.enum";
 import { ValidationError } from "../errors/validation.error";
+import { ProductColor } from "./product-color";
+import { ProductMaterial } from "./product-material";
 
 type ProductProps = Readonly<{
     id: string,
-    sku: string,
     name: string,
+    sku: string,
     normalizedName: string,
     price: number,
     size?: ProductSize,
-    modelId: string,
-    mlProductId?: string,
     barcode?: string,
     type: ProductType,
+
+    modelId: string,
+    mlProductId?: string,
+
+    productColor?: ProductColor[],
+    productMaterial?: ProductMaterial[],
+
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,
@@ -37,6 +42,8 @@ export class Product {
     private _materialIds: string[];
     private _colorIds: string[];
     private _mlProductId?: string; // vínculo futuro com ML
+    private _productColor?: ProductColor[];
+    private _productMaterial?: ProductMaterial[];
     private _sku: string;
     private _barcode?: string;
     private _createdAt: Date;
@@ -51,7 +58,7 @@ export class Product {
         this.validateSku(props.sku);
         this.validateType(props.type);
         if (props.barcode !== undefined) this.validateBarCode(props.barcode);
-        if (props.size !== undefined) this.validateSize(props.size);
+        if (props.size && props.size !== undefined) this.validateSize(props.size);
 
         this._id = props.id;
         this._name = props.name;
@@ -65,6 +72,8 @@ export class Product {
         this._materialIds = [];
         this._colorIds = [];
         this._mlProductId = props.mlProductId;
+        this._productColor = props.productColor; // SÓ PARA RESTORE
+        this._productMaterial = props.productMaterial;
         this._createdAt = props.createdAt;
         this._updatedAt = props.updatedAt;
         this._deletedAt = props.deletedAt;
@@ -244,7 +253,7 @@ export class Product {
         // evita duplicidade
         if (this._colorIds.some(id => id === input.colorId)) throw new ValidationError("Color already exists");
 
-        this._colorIds.push(input.colorId)
+        this._colorIds.push(input.colorId);
         this.touch();
     }
 
@@ -323,6 +332,14 @@ export class Product {
         if (this._materialIds.length !== initialLength) this.touch();
     }
 
+    get productColor(): ProductColor[] | undefined {
+        return this._productColor;
+    }
+
+    get productMaterial(): ProductMaterial[] | undefined {
+        return this._productMaterial;
+    }
+
     get createdAt(): Date {
         return new Date(this._createdAt);
     }
@@ -351,6 +368,29 @@ export class Product {
 
     isActive(): boolean {
         return !this._deletedAt;
+    }
+
+    toJSON() {
+        return {
+            id: this._id,
+            name: this._name,
+            normalizedName: this._normalizedName,
+            type: this._type,
+            price: this._price,
+            size: this._size,
+            modelId: this._modelId,
+            materialIds: this._materialIds,
+            colorIds: this._colorIds,
+            mlProductId: this._mlProductId,
+            // Mapeia os arrays de instâncias para objetos puros
+            productColor: this._productColor?.map(pc => pc.toJSON()),
+            productMaterial: this._productMaterial?.map(pm => pm.toJSON()),
+            sku: this._sku,
+            barcode: this._barcode,
+            createdAt: this._createdAt,
+            updatedAt: this._updatedAt,
+            deletedAt: this._deletedAt,
+        };
     }
 
     private validatePrice(price: number): void {

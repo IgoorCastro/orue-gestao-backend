@@ -1,3 +1,5 @@
+import { ProductColor } from "@/src/domain/entities/product-color";
+import { ProductMaterial } from "@/src/domain/entities/product-material";
 import { ProductSize } from "@/src/domain/enums/product-size.enum";
 import { ProductType } from "@/src/domain/enums/product-type.enum";
 
@@ -15,17 +17,16 @@ export type FindProductBySkuInputDto = Readonly<{
 
 export type FindProductFilteredDto = Readonly<{
     name?: string,
-    colorIds?: string[];
-    materialIds?: string[];
-    modelIds?: string[];
     size?: ProductSize;
     type?: ProductType,
     barcode?: string,
     mlProductId?: string,
-    price?: {
-        gte?: number,
-        lte?: number,
-    },
+    maxPrice?: number,
+    minPrice?: number,
+
+    colorIds?: string[];
+    materialIds?: string[];
+    modelIds?: string[];
     page?: number;
     limit?: number;
     orderBy?: {
@@ -39,13 +40,18 @@ export type FindProductOutputDto = Readonly<{
     sku: string,
     name: string,
     price: number,
-    colorIds: string[],
     size?: ProductSize,
     type: ProductType,
-    materialIds: string[],
-    modelId: string,
-    mlProductId?: string,
     barcode?: string,
+
+    modelId: string,
+    materialIds: string[],
+    mlProductId?: string,
+    colorIds: string[],
+
+    productColor?: ProductColor[],
+    productMaterial?: ProductMaterial[],
+
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,

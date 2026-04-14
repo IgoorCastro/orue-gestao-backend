@@ -11,11 +11,16 @@ export class FindStocksUseCase {
             ...filters,
         });
 
+        // console.log("PCS: ", pcs)
+
         return pcs.map(pc => ({
             id: pc.id,
             name: pc.name,
-            storeId: pc.storeId,
             type: pc.type,
+
+            storeId: pc.storeId,
+            store: pc.store,
+
             createdAt: pc.createdAt,
             updatedAt: pc.updatedAt,
             deletedAt: pc.deletedAt,

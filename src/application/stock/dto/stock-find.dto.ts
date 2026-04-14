@@ -1,3 +1,4 @@
+import { Store } from "@/src/domain/entities/store.entity";
 import { StockType } from "@/src/domain/enums/stock-type.enum";
 
 export type FindStockByIdInputDto = Readonly<{
@@ -26,7 +27,10 @@ export type FindStockOutputDto = Readonly<{
     id: string,
     name: string,
     type: StockType,
+
     storeId?: string,
+    store?: Store,
+
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,

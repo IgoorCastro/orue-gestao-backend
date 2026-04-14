@@ -1,5 +1,6 @@
 import { UserRole } from "@/src/domain/enums/user-role.enum";
 import { UserRepository } from "@/src/domain/repositories/user.repository";
+import { FindUserFilteredDto, FindUserOutputDto } from "../dto/user-find.dto";
 
 type Input = {
     id?: string;
@@ -10,14 +11,22 @@ type Input = {
 
 export class FindUsersUseCase {
     constructor(private readonly userRepository: UserRepository) {}
-    async execute(input: Input) {
-        // caso o find for por ID
-        if (input.id) return this.userRepository.findById(input.id);
+    async execute(input: FindUserFilteredDto): Promise<FindUserOutputDto[]> {
 
-        return this.userRepository.findMany({
+        const users = await this.userRepository.findMany({
             name: input.name,
             role: input.role,
             nickname: input.nickname,
         });
+
+        return users.map(user => ({
+            id: user.id,
+            name: user.name,
+            nickname: user.nickname,
+            role: user.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            deletedAt: user.deletedAt,
+        }))
     }
 }

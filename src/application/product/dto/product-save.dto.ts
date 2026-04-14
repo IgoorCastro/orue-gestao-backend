@@ -18,7 +18,7 @@ export type SaveProductOutputDto = {
     name: string,
     type: ProductType,
     price: number,
-    size: ProductSize,
+    size?: ProductSize,
     modelId: string,
     materialIds: string[],
     colorIds: string[],

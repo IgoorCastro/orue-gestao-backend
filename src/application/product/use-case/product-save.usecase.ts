@@ -19,6 +19,7 @@ export class UpdateProductUseCase {
     ) { }
 
     async execute(input: SaveProductInputDto): Promise<SaveProductOutputDto> {
+        console.log("input: ", input)
         const { id, name, type, price, size, modelId, materialIds, colorIds, mlProductId } = input;
         let shouldRecalculateSku = false; // controle para gerar novo sku
 
@@ -27,11 +28,12 @@ export class UpdateProductUseCase {
         const product = await this.productRepository.findById(id);
         if (!product) throw new NotFoundError("Product not found");
 
+        
         if (name !== undefined) {
             const formattedName = normalizeName(name);
-            const exists = await this.productRepository.findByName(formattedName);
-            if(exists.length > 0) throw new ConflictError("Product name already exists");
-            
+            // const exists = await this.productRepository.findByName(formattedName);
+            // console.log("exists", exists)
+            // if(exists.length > 0) throw new ConflictError("Product name already exists");
             product.rename(name);
             shouldRecalculateSku = true;
         }
@@ -73,6 +75,7 @@ export class UpdateProductUseCase {
         // alterar sku sempre que houver alteração
         // em suas propriedades
         if (shouldRecalculateSku) {
+            console.log("Recalculando SKU");
             const [colors, materials, model] = await Promise.all([
                 this.colorRepository.findByIds(product.colors),
                 this.materialRepository.findByIds(product.materials),
@@ -85,7 +88,9 @@ export class UpdateProductUseCase {
                 material: materials.map(m => m.name),
                 model: model?.name ?? "WWW",
                 size: product.size,
+                type: product.type,
             })
+            console.log("Novo SKU: ", sku);
 
             product.changeSku(sku);
         }

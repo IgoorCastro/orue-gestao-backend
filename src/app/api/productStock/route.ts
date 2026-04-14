@@ -67,7 +67,6 @@ export async function GET(req: NextResponse) {
             productId,
             stockId: stockId,
         })
-
         return NextResponse.json(ps, { status: 200 });
     } catch (error: unknown) {
         if (error instanceof DomainError) {

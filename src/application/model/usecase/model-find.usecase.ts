@@ -1,8 +1,4 @@
-import { UserRole } from "@/src/domain/enums/user-role.enum";
-import { ColorRepository } from "@/src/domain/repositories/color.repository";
-import { MaterialRepository } from "@/src/domain/repositories/material.repository";
 import { ModelRepository } from "@/src/domain/repositories/model.repository";
-import { UserRepository } from "@/src/domain/repositories/user.repository";
 import { FindModelOutputDto } from "../dto/model-find.dto";
 import { NotFoundError } from "@/src/domain/errors/not-found.error";
 

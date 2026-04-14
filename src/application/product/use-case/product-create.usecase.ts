@@ -8,7 +8,6 @@ import { ModelRepository } from "@/src/domain/repositories/model.repository";
 import { SkuGeneratorService } from "@/src/domain/services/sku-generator.services";
 import { BarcodeGeneratorService } from "@/src/domain/services/barcode-generator.services";
 import normalizeName from "@/src/domain/utils/normalize-name";
-import { ConflictError } from "@/src/domain/errors/conflict.error";
 import { NotFoundError } from "@/src/domain/errors/not-found.error";
 
 export class CreateProductUseCase {
@@ -27,8 +26,7 @@ export class CreateProductUseCase {
         
         const formattedName = normalizeName(name);
 
-        const [existingProduct, model, materials, colors] = await Promise.all([
-            this.productRepository.existsByName(formattedName),
+        const [ model, materials, colors] = await Promise.all([
             this.modelRepository.findById(modelId),
             this.materialRepository.findByIds(materialIds),
             this.colorRepository.findByIds(colorIds),
@@ -75,7 +73,6 @@ export class CreateProductUseCase {
             modelId: modelId,
             mlProductId: mlProductId,
         });
-
 
         // adiciona os ids dos materiais na entidade
         materialIds.forEach(materialId => product.addMaterial({ materialId }));

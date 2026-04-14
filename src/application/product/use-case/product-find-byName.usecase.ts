@@ -23,6 +23,9 @@ export class FindProductsByNameUseCase {
             sku: p.sku,
             barcode: p.barcode,
             mlProductId: p.mlProductId,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            deletedAt: p.deletedAt,
         }));
     }
 }

@@ -107,6 +107,17 @@ export class Model {
         return !this._deletedAt;
     }
 
+    toJSON() {
+        return {
+            id: this.id,
+            name: this.name,
+            normalizedName: this.normalizedName,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+            deletedAt: this.deletedAt,
+        };
+    }
+
     private static validateName(name: string) {
         if (!name?.trim()) throw new ValidationError("Model name cannot be empty");
     }

@@ -1,18 +1,20 @@
 import { ColorRepository } from "@/src/domain/repositories/color.repository";
-
-type Input = {
-    id?: string;
-    name?: string;
-};
+import { FindColorFilteredDto, FindColorOutputDto } from "../dto/color-find.dto";
 
 export class FindColorsUseCase {
     constructor(private readonly colorRepository: ColorRepository) {}
-    async execute(input: Input) {
-        // caso o find for por ID
-        if (input.id) return this.colorRepository.findById(input.id);
+    async execute(filters: FindColorFilteredDto): Promise<FindColorOutputDto[]> {
 
-        return this.colorRepository.findMany({
-            name: input.name,
-        });
+        const colors = await this.colorRepository.findMany({
+            ...filters,
+        })
+
+        return colors.map(c => ({
+            id: c.id,
+            name: c.name,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+            deletedAt: c.deletedAt,
+        }))
     }
 }
