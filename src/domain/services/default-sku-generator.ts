@@ -3,42 +3,56 @@ import { GenerateSkuInput, SkuGeneratorService } from "./sku-generator.services"
 export class DefaultSkuGenerator implements SkuGeneratorService {
     generate({ name, model, material, size, color, type }: GenerateSkuInput): string {
 
-        // Nova lógica de formatação de partes
-        const formatPart = (value: string) => {
-            const trimmed = value.trim();
+        const formatPart = (value: string | undefined): string => {
+            if (!value) return "";
             
-            // Verifica se a string é puramente numérica (ex: "2026")
+            const trimmed = value.trim();
+            if (trimmed.length === 0) return "";
+
+            // Se for numérico (ex: "2026"), pega os 3 últimos
             if (/^\d+$/.test(trimmed)) {
-                // Pega os 3 últimos dígitos (ou menos, se a string for menor)
                 return trimmed.slice(-3);
             }
             
-            // Se for texto, mantém o padrão dos 3 primeiros dígitos
             return trimmed.substring(0, 3).toUpperCase();
         };
 
-        const splitAndFormat = (value: string) =>
-            value
+        const splitAndFormat = (value: string | undefined): string => {
+            if (!value) return "";
+            return value
                 .split(" ")
-                .filter(v => v.length > 0) // Evita espaços duplos
+                .filter(v => v.length > 0)
                 .map(formatPart)
+                .filter(v => v !== "") // Remove partes que ficaram vazias
                 .join("/");
+        };
 
-        const skuName = splitAndFormat(name);      // CAM/DRY/FIT/026
-        const skuModel = formatPart(model);        // CAM
+        // 1. Nome formatado (sempre existe)
+        const skuName = splitAndFormat(name);
 
-        const skuMaterial = material
+        // 2. Modelo (opcional)
+        const skuModel = formatPart(model);
+
+        // 3. Materiais (opcional - Array)
+        const skuMaterial = (material ?? [])
             .map(formatPart)
-            .join("/");                             // ALG/POL
+            .filter(v => v !== "")
+            .join("/");
 
-        const skuColor = color
+        // 4. Cores (opcional - Array)
+        const skuColor = (color ?? [])
             .map(formatPart)
-            .join("/");                             // PRE
+            .filter(v => v !== "")
+            .join("/");
 
-        // Montagem do SKU final
-        // Note que usei o formatPart para o 'size' também, caso queira manter a consistência
-        const finalSize = size ? size.toUpperCase() : type;
+        // 5. Tamanho ou Tipo
+        const finalSize = (size || type || "").toUpperCase();
 
-        return `${skuName}-${skuModel}-${skuMaterial}-${skuColor}-${finalSize}`;
+        // Montagem inteligente:
+        // Criamos um array com todas as partes, filtramos o que for vazio 
+        // e juntamos com o hífen.
+        return [skuName, skuModel, skuMaterial, skuColor, finalSize]
+            .filter(part => part !== "") // Remove os "buracos" se a prop for undefined
+            .join("-");
     }
 }

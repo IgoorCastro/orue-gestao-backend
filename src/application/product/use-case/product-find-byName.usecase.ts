@@ -16,6 +16,8 @@ export class FindProductsByNameUseCase {
             name: p.name,
             price: p.price,
             type: p.type,
+            productColor: p.productColor,
+            productMaterial: p.productMaterial,
             size: p.size,
             colorIds: p.colors,
             materialIds: p.materials,

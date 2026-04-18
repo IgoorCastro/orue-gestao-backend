@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // lista de dados necessarios para criar uma nova relação
-        const { parentId, componentId, quantity } = body;
+        const { parentProductId, componentProductId, quantity } = body;
 
         function makeCreatePcUseCase(): CreateProductComponentUseCase {
             const productComponentRepository = new PrismaProductComponentRepository(prisma);
@@ -28,13 +28,16 @@ export async function POST(req: NextRequest) {
             return new CreateProductComponentUseCase(productComponentRepository, productRepository, uuid);
         }
 
+
+        console.log("BODY: ", body)
         // 'pc' = Product Component
         const createPcUseCase = makeCreatePcUseCase();
         const pc = await createPcUseCase.execute({
-            parentProductId: parentId,
-            componentProductId: componentId,
+            parentProductId,
+            componentProductId,
             quantity,
         });
+        console.log("ASLDÇDSAD")
 
         return NextResponse.json(pc, { status: 200 })
     } catch (error: unknown) {

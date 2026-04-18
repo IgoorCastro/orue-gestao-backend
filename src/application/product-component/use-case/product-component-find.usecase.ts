@@ -16,6 +16,8 @@ export class FindProductComponentsUseCase {
             parentProductId: pc.parentProductId,
             componentProductId: pc.componentProductId,
             quantity: pc.quantity,
+            componentProduct: pc.componentProduct,
+            parentProduct: pc.parentProduct,
             createdAt: pc.createdAt,
             updatedAt: pc.updatedAt,
             deletedAt: pc.deletedAt,

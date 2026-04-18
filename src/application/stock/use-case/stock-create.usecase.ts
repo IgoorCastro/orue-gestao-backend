@@ -32,7 +32,7 @@ export class CreateStockUseCase {
 
         // validação da loja
         // estoque main não precisa de loja vinculada
-        if (input.storeId !== undefined) {
+        if (input.storeId?.trim()) {
             const exists = await this.storeRepository.findById(input.storeId);
             if(!exists) throw new NotFoundError("Store not found");            
         }

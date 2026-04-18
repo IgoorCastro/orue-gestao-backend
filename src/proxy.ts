@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  // "http://192.168.15.20:3000", // para liberar o acesso fora do localhost
+  "http://192.168.15.20:3000", // para liberar o acesso fora do localhost
 ];
 
 export default function proxy(req: NextRequest) {

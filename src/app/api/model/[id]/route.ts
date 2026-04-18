@@ -50,6 +50,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 { status: 400 }
             );
 
+            console.log("BODY: ", body)
+
         const updateModelUseCase = new UpdateModelUseCase(new PrismaModelRepository(prisma));
 
         const model = await updateModelUseCase.execute({

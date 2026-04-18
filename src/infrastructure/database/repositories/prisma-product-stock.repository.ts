@@ -140,7 +140,7 @@ export class PrismaProductStockRepository implements ProductStockRepository {
             try {
                 return this.toDomainWithInclude(productStock);
             } catch (e) {
-                console.error(`❌ Erro no mapeamento do ProductStock índice [${index}]:`, e);
+                console.error(`Erro no mapeamento do ProductStock índice [${index}]:`, e);
                 throw e;
             }
         });

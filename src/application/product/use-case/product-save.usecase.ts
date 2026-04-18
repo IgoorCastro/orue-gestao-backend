@@ -7,7 +7,7 @@ import { ModelRepository } from "@/src/domain/repositories/model.repository";
 import { ValidationError } from "@/src/domain/errors/validation.error";
 import { NotFoundError } from "@/src/domain/errors/not-found.error";
 import normalizeName from "@/src/domain/utils/normalize-name";
-import { ConflictError } from "@/src/domain/errors/conflict.error";
+import { ProductType } from "@/src/domain/enums/product-type.enum";
 
 export class UpdateProductUseCase {
     constructor(
@@ -19,16 +19,15 @@ export class UpdateProductUseCase {
     ) { }
 
     async execute(input: SaveProductInputDto): Promise<SaveProductOutputDto> {
-        console.log("input: ", input)
         const { id, name, type, price, size, modelId, materialIds, colorIds, mlProductId } = input;
         let shouldRecalculateSku = false; // controle para gerar novo sku
 
-        if(!id?.trim()) throw new ValidationError("Id cannot be empty");
-        
+        if (!id?.trim()) throw new ValidationError("Id cannot be empty");
+
         const product = await this.productRepository.findById(id);
         if (!product) throw new NotFoundError("Product not found");
 
-        
+
         if (name !== undefined) {
             const formattedName = normalizeName(name);
             // const exists = await this.productRepository.findByName(formattedName);
@@ -37,6 +36,7 @@ export class UpdateProductUseCase {
             product.rename(name);
             shouldRecalculateSku = true;
         }
+
 
         if (type !== undefined) product.changeType(type);
 
@@ -50,7 +50,7 @@ export class UpdateProductUseCase {
         if (mlProductId !== undefined) product.changeMlProductId(mlProductId);
 
         // altera todo os ids por novos
-        if (colorIds !== undefined) {
+        if (colorIds?.length) {
             const colors = await this.colorRepository.findByIds(colorIds);
             this.validateIds(colors, colorIds, "Colors");
 
@@ -58,7 +58,7 @@ export class UpdateProductUseCase {
             shouldRecalculateSku = true;
         }
 
-        if (materialIds !== undefined) {
+        if (materialIds?.length) {
             // recebe um array de Ids e verifica no Db
             const materials = await this.materialRepository.findByIds(materialIds);
             this.validateIds(materials, materialIds, "Materials");
@@ -67,32 +67,45 @@ export class UpdateProductUseCase {
             shouldRecalculateSku = true;
         }
 
-        if (modelId !== undefined) {
+        if (modelId?.trim()) {
             product.changeModel(modelId);
             shouldRecalculateSku = true;
         }
+        console.log("PASSOUs >> ")
 
         // alterar sku sempre que houver alteração
         // em suas propriedades
         if (shouldRecalculateSku) {
             console.log("Recalculando SKU");
-            const [colors, materials, model] = await Promise.all([
-                this.colorRepository.findByIds(product.colors),
-                this.materialRepository.findByIds(product.materials),
-                this.modelRepository.findById(product.modelId),
-            ]);
+            if (type === ProductType.PRODUCT) {
+                if (!product.modelId) throw new ValidationError("Model id cannot be empty")
+                const [colors, materials, model] = await Promise.all([
+                    this.colorRepository.findByIds(product.colors),
+                    this.materialRepository.findByIds(product.materials),
+                    this.modelRepository.findById(product.modelId),
+                ]);
 
-            const sku = this.skuGeneration.generate({
-                name: product.name,
-                color: colors.map(c => c.name),
-                material: materials.map(m => m.name),
-                model: model?.name ?? "WWW",
-                size: product.size,
-                type: product.type,
-            })
-            console.log("Novo SKU: ", sku);
+                const sku = this.skuGeneration.generate({
+                    name: product.name,
+                    color: colors.map(c => c.name),
+                    material: materials.map(m => m.name),
+                    model: model?.name ?? "WWW",
+                    size: product.size,
+                    type: product.type,
+                })
 
-            product.changeSku(sku);
+                product.changeSku(sku);
+            } else {
+                // Recalculo de KIT e PACKAGE
+                const sku = this.skuGeneration.generate({
+                    name: product.name,
+                    size: product.size,
+                    type: product.type,
+                })
+                console.log("Novo SKU: ", sku);
+
+                product.changeSku(sku);
+            }
         }
 
         await this.productRepository.save(product);

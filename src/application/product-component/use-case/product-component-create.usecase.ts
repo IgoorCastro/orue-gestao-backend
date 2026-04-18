@@ -23,6 +23,9 @@ export class CreateProductComponentUseCase {
     ) { }
 
     async execute({ componentProductId, parentProductId, quantity }: CreateProductComponentInputDto): Promise<CreateProductComponentOutputDto> {
+        console.log("componentProductId: ", componentProductId)
+        console.log("parentProductId: ", parentProductId)
+        console.log("quantity: ", quantity)
         if(componentProductId === undefined || parentProductId === undefined) throw new ValidationError("Product and component id is required");
         if (parentProductId === componentProductId) throw new ValidationError("Product cannot be a component of itself");
         if (quantity < 1) throw new ValidationError("Quantity must be greater than zero");

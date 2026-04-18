@@ -1,5 +1,9 @@
 export default function Home() {
   return (
-    <p>Backend only..</p>
-  );
+    <html lang="pt-br">
+      <body>
+        <p>Backend only..</p>
+      </body>
+    </html>
+  )
 }

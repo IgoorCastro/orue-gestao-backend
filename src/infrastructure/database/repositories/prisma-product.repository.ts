@@ -139,7 +139,7 @@ export class PrismaProductRepository implements ProductRepository {
                 include: this.defaultInclude,
                 take: limit,
                 skip: (page - 1) * limit,
-                orderBy: orderBy,
+                orderBy: orderBy ?? { createdAt: "desc" },
             }),
             this.prisma.product.count({ where })
         ]);
@@ -309,7 +309,7 @@ export class PrismaProductRepository implements ProductRepository {
             type: prismaProduct.type as ProductType,
             price: prismaProduct.price,
             size: prismaProduct.size as ProductSize ?? undefined,
-            modelId: prismaProduct.modelId,
+            modelId: prismaProduct.modelId ?? undefined,
             colors: prismaProduct.ProductColor.map(c => c.colorId),
             materials: prismaProduct.ProductMaterial.map(m => m.materialId),
             productColor: prismaProduct.ProductColor?.map(pc =>
@@ -369,7 +369,9 @@ export class PrismaProductRepository implements ProductRepository {
             type: product.type as PrismaProductType,
             price: product.price,
             size: product.size,
-            model: { connect: { id: product.modelId } },
+            model: product.modelId
+                ? { connect: { id: product.modelId } }
+                : undefined,
             sku: product.sku,
             barcode: product.barcode,
         };

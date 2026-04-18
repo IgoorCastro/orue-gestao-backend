@@ -20,15 +20,13 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
 
-        const { name, type, storeId } = body;
-
         function makeCreateUseCase() {
             const stockRepository = new PrismaStockRepository(prisma)
             const uuid = new UUIDGenerator();
             const storeRepository = new PrismaStoreRepository(prisma);
             return new CreateStockUseCase(stockRepository, storeRepository, uuid);
         }
-        
+
         const createUseCase = makeCreateUseCase();
 
         const stock = await createUseCase.execute({

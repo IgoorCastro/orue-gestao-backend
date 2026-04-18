@@ -20,7 +20,7 @@ type ProductProps = Readonly<{
     barcode?: string,
     type: ProductType,
 
-    modelId: string,
+    modelId?: string,
     mlProductId?: string,
 
     productColor?: ProductColor[],
@@ -38,7 +38,7 @@ export class Product {
     private _type: ProductType;
     private _price: number;
     private _size?: ProductSize;
-    private _modelId: string;
+    private _modelId?: string;
     private _materialIds: string[];
     private _colorIds: string[];
     private _mlProductId?: string; // vínculo futuro com ML
@@ -52,7 +52,7 @@ export class Product {
 
     private constructor(props: ProductProps) {
         if (!props.id?.trim()) throw new ValidationError("Id cannot be empty");
-        this.validateModel(props.modelId);
+        if(props.modelId) this.validateModel(props.modelId);
         // Product.validateName(props.name);
         this.validatePrice(props.price);
         this.validateSku(props.sku);
@@ -87,10 +87,11 @@ export class Product {
         type: ProductType,
         sku: string,
         size?: ProductSize,
-        modelId: string,
+        modelId?: string,
         mlProductId?: string,
         barcode?: string,
     }): Product {
+        console.log("PROPS: ", props)
         const now = new Date();
 
         return new Product({
@@ -200,7 +201,7 @@ export class Product {
         this.touch();
     }
 
-    get modelId(): string {
+    get modelId(): string | undefined {
         return this._modelId;
     }
 

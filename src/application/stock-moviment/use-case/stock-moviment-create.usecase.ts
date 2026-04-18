@@ -13,6 +13,7 @@ import { StockMoviment } from "@/src/domain/entities/stock-moviment.entity";
 import { ProductStockRepository } from "@/src/domain/repositories/product-stock.repository";
 import { ProductStock, ProductStock as ProductStockEntity } from "@/src/domain/entities/product-stock.entity";
 import { StockMovimentType } from "@/src/domain/enums/stock-moviment-type.enum";
+import { StockType } from "@/src/domain/enums/stock-type.enum";
 
 export class CreateStockMovimentUseCase {
     constructor(
@@ -66,6 +67,10 @@ export class CreateStockMovimentUseCase {
         if (input.type === StockMovimentType.INBOUND) {
             console.log("\n\n--INBOUND--\n\n")
             if (!input.toStockId) throw new ValidationError("Inbound requires toStockId");
+            // Testar tipo do estoque - SOMENTE ESTOQUE MAIN RECEBE ENTRADA!
+            const toStock = await this.stockRepository.findById(input.toStockId);
+            console.log("TOSTOCK: ", toStock)
+            if (toStock?.type !== StockType.MAIN) throw new ValidationError("Inbound needs to be done using a MAIN type stock")
 
             // verificar se ja existe uma relação entre Produto x Estoque
             // para adicionar novos produtos

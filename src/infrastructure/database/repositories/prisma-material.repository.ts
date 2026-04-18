@@ -61,7 +61,8 @@ export class PrismaMaterialRepository implements MaterialRepository {
                 normalizedName: filters.name
                     ? { contains: normalizeName(filters.name), mode: "insensitive" }
                     : undefined,
-            }
+            },
+            orderBy: { name: "asc" }
         })
 
         return materials.map(m => this.toDomain(m));

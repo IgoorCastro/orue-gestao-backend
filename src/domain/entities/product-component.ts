@@ -3,21 +3,26 @@
 // construção de kits e pacotes 
 
 import { ValidationError } from "../errors/validation.error";
+import { Product } from "./product.entity";
 
 type ProductComponentProps = Readonly<{
     id: string,
+    quantity: number,
     parentProductId: string,
     componentProductId: string,
-    quantity: number,
+    parentProduct?: Product;
+    componentProduct?: Product;
     createdAt: Date,
     updatedAt: Date,
     deletedAt?: Date,
 }>
 export class ProductComponent {
     private readonly _id: string;
+    private _quantity: number;
     private _parentProductId: string;
     private _componentProductId: string;
-    private _quantity: number;
+    private _parentProduct?: Product;
+    private _componentProduct?: Product;
     private _createdAt: Date;
     private _updatedAt: Date;
     private _deletedAt?: Date;
@@ -30,9 +35,11 @@ export class ProductComponent {
         this.validateQuantity(props.quantity);
 
         this._id = props.id;
+        this._quantity = props.quantity;
         this._parentProductId = props.parentProductId;
         this._componentProductId = props.componentProductId;
-        this._quantity = props.quantity;
+        this._componentProduct = props.componentProduct;
+        this._parentProduct = props.parentProduct;
         this._createdAt = props.createdAt;
         this._updatedAt = props.updatedAt;
         this._deletedAt = props.deletedAt;
@@ -105,6 +112,14 @@ export class ProductComponent {
         this.touch();
     }
 
+    get parentProduct(): Product | undefined {
+        return this._parentProduct;
+    }
+
+    get componentProduct(): Product | undefined {
+        return this._componentProduct;
+    }
+
     get createdAt(): Date {
         return this._createdAt;
     }
@@ -138,9 +153,11 @@ export class ProductComponent {
     toJSON() {
         return {
             id: this._id,
+            quantity: this._quantity,
             parentProductId: this._parentProductId,
             componentProductId: this._componentProductId,
-            quantity: this._quantity,
+            parentProduct: this._parentProduct,
+            componentProduct: this._componentProduct,
             createdAt: this._createdAt,
             updatedAt: this._updatedAt,
             deletedAt: this._deletedAt,

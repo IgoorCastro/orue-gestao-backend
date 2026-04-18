@@ -8,9 +8,9 @@ export interface CreateProductInputDto {
     type: ProductType,
     price: number,
     size?: ProductSize,
-    modelId: string,
-    materialIds: string[],
-    colorIds: string[],
+    modelId?: string,
+    materialIds?: string[],
+    colorIds?: string[],
     mlProductId?: string,
 }
 
@@ -20,10 +20,11 @@ export interface CreateProductOutputDto {
     name: string,
     normalizedName: string,
     price: number,
-    colorIds: string[],
+    type: ProductType,
+    colorIds?: string[],
     size?: ProductSize,
-    materialIds: string[],
-    modelId: string,
+    materialIds?: string[],
+    modelId?: string,
     mlProductId?: string,
     barcode?: string,
 }

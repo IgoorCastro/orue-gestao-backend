@@ -44,7 +44,8 @@ export class PrismaStoreRepository implements StoreRepository {
                 name: filters.name
                     ? normalizeName(filters.name)
                     : undefined,
-            }
+            },
+            orderBy: { name: "asc" }
         })
 
         return stores.map(s => this.toDomain(s));

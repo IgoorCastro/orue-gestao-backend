@@ -69,6 +69,11 @@ export class PrismaStockRepository implements StockRepository {
             },
             include: {
                 Store: true,
+            },
+            orderBy: {
+                Store: {
+                    name: "asc"
+                }
             }
         })
 

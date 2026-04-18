@@ -1,3 +1,5 @@
+import { Product } from "@/src/domain/entities/product.entity";
+
 export type FindProductComponentByIdInputDto = Readonly<{
     id: string,
 }>;
@@ -19,6 +21,8 @@ export type FindProductComponentOutputDto = Readonly<{
     id: string,
     parentProductId: string,
     componentProductId: string,
+    parentProduct?: Product,
+    componentProduct?: Product,
     quantity: number,
     createdAt: Date,
     updatedAt: Date,

@@ -44,10 +44,10 @@ export type FindProductOutputDto = Readonly<{
     type: ProductType,
     barcode?: string,
 
-    modelId: string,
-    materialIds: string[],
+    modelId?: string,
+    materialIds?: string[],
     mlProductId?: string,
-    colorIds: string[],
+    colorIds?: string[],
 
     productColor?: ProductColor[],
     productMaterial?: ProductMaterial[],

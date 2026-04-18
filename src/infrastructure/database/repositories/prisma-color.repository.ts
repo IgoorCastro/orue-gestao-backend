@@ -76,7 +76,8 @@ export class PrismaColorRepository implements ColorRepository {
                 normalizedName: filters.name
                     ? { contains: normalizeName(filters.name), mode: "insensitive" }
                     : undefined,
-            }
+            },
+            orderBy: { name: "asc" }
         })
 
         return colors.map(color => this.toDomain(color));

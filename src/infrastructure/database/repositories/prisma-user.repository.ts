@@ -68,6 +68,7 @@ export class PrismaUserRepository implements UserRepository {
                     : undefined,
                 role: filters.role ?? undefined,
             },
+            orderBy: { name: "asc" }
         });
 
         return users.map(user => this.toDomain(user));
